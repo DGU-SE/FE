@@ -34,8 +34,14 @@ class MyApp extends StatelessWidget {
           unselectedItemColor: Colors.black38, // 쉼표 추가
         ),
         textTheme: const TextTheme(
-          displayLarge: TextStyle(
+          titleMedium: TextStyle(
+            fontSize: 16.0,
+            fontWeight: FontWeight.bold,
             color: Colors.black87,
+          ),
+          titleSmall: TextStyle(
+            fontSize: 14.0,
+            color: Colors.grey,
           ),
         ),
         cardColor: const Color(0xffDEEABB),
