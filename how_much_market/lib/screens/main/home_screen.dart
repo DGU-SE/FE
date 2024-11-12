@@ -32,20 +32,29 @@ class _HomeScreenState extends State<HomeScreen> {
       'distance': '500m',
       'timeAgo': '10분 전',
       'price': '200,000 원',
+      'saleType': '즉시판매', // 판매 방식 추가
+      'userName': '홍길동', // 사용자 이름 추가
+      'userLocation': '서울시 강남구', // 사용자 위치 추가
     },
     {
       'imageUrl': 'assets/images/no_image.jpg',
       'title': '아이폰 7 Pro 판매합니다.',
       'distance': '600m',
-      'timeAgo': '10분 전',
+      'timeAgo': '20분 전',
       'price': '300,000 원',
+      'saleType': 'auction',
+      'userName': '이순신',
+      'userLocation': '서울시 종로구',
     },
     {
       'imageUrl': 'assets/images/no_image.jpg',
       'title': '아이폰 8 Pro 판매합니다.',
       'distance': '700m',
-      'timeAgo': '10분 전',
+      'timeAgo': '30분 전',
       'price': '400,000 원',
+      'saleType': 'auction',
+      'userName': '장보고',
+      'userLocation': '부산시 해운대구',
     },
   ];
 
@@ -148,6 +157,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       distance: product['distance'],
                       timeAgo: product['timeAgo'],
                       price: product['price'],
+                      saleType: product['saleType'],
+                      userName: product['userName'],
+                      userLocation: product['userLocation'],
+                      description: "제품설명\n가나다\nABC\n1234567890",
+                      auctionEndTime: "2024-11-12",
                     ),
                     const Divider(color: Color.fromARGB(255, 235, 235, 235)),
                   ],
