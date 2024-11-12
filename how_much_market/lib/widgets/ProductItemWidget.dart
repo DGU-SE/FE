@@ -7,6 +7,9 @@ class ProductItemWidget extends StatelessWidget {
   final String title;
   final String distance;
   final String timeAgo;
+  final String auctionStartPrice;
+  final String highestBid;
+
   final String price;
   final String saleType; // 판매 방식 (경매 또는 즉시 판매 등)
   final String userName;
@@ -20,7 +23,9 @@ class ProductItemWidget extends StatelessWidget {
     required this.title,
     required this.distance,
     required this.timeAgo,
+    required this.auctionStartPrice,
     required this.price,
+    required this.highestBid,
     required this.saleType,
     required this.userName,
     required this.userLocation,
@@ -45,6 +50,8 @@ class ProductItemWidget extends StatelessWidget {
                 'imageUrl': imageUrl,
                 'title': title,
                 'price': price,
+                'auctionStartPrice': auctionStartPrice,
+                'highestBid': highestBid,
                 'saleType': saleType,
                 'userName': userName,
                 'userLocation': userLocation,
@@ -89,6 +96,8 @@ class ProductItemWidget extends StatelessWidget {
                       fontSize: screenHeight * 0.022,
                       fontWeight: FontWeight.w400,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: screenHeight * 0.008),
                   Text(
