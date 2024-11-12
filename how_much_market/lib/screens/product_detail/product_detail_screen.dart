@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:how_much_market/screens/product_detail/comment_registration_screen.dart';
+import 'package:how_much_market/screens/product_detail/product_confirmation_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -90,12 +92,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   SizedBox(height: screenHeight * 0.04),
 
                   // 상품 제목
-                  Text(
-                    widget.product['title'],
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.055,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isAuction ? '경매중 ' : '판매중 ',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.055,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          widget.product['title'],
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.055,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2, // 최대 줄 수를 2줄로 제한
+                          overflow:
+                              TextOverflow.ellipsis, // 글자가 너무 길면 "..."로 생략
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
                     "10분 전", // 상품이 올라온 시간
@@ -104,29 +124,79 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       color: Colors.grey,
                     ),
                   ),
-                  SizedBox(height: screenHeight * 0.02),
+                  SizedBox(height: screenHeight * 0.03),
 
                   // 상품 가격 (숫자 강조)
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '',
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.055,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                        ),
-                        TextSpan(
-                          text: widget.product['price'],
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.07,
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isAuction) ...[
+                            Text(
+                              '경매 시작가',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.045,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(
+                              height: screenHeight * 0.02,
+                            ),
+                            Text(
+                              '현재 최고가',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.05,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ] else ...[
+                            Text(
+                              '가격',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.05,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (isAuction) ...[
+                            Text(
+                              widget.product['auctionStartPrice'], // 경매 시작가 값
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.06,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(
+                              height: screenHeight * 0.01,
+                            ),
+                            Text(
+                              widget.product['highestBid'], // 현재 최고가 값
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.07,
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ] else ...[
+                            Text(
+                              widget.product['price'], // 가격 값
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.07,
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
                   ),
                   SizedBox(height: screenHeight * 0.05),
 
@@ -165,7 +235,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       TextButton(
                         onPressed: () {
-                          // 댓글 등록 기능 추가 예정
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CommentRegistrationScreen(
+                                      productTitle:
+                                          "${widget.product['title']}",
+                                    )),
+                          );
                         },
                         child: Text(
                           '댓글 등록하기',
@@ -190,7 +267,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        // 응찰 또는 구매 기능 추가 예정
+                        // isAuction에 따라 다른 화면으로 이동
+                        if (isAuction) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProductBidConfirmationScreen(
+                                      product: widget.product),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProductPurchaseConfirmationScreen(
+                                      product: widget.product),
+                            ),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(
