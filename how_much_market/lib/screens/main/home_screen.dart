@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SearchScreen(),
           const ProductRegistrationScreen(),
           const FavoriteScreen(),
-          const MypageScreen(),
+          const MyPageScreen(),
         ];
 
   final List<Map<String, dynamic>> productData = [
