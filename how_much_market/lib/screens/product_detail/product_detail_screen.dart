@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:how_much_market/screens/product_detail/comment_registration_screen.dart';
 import 'package:how_much_market/screens/product_detail/product_confirmation_screen.dart';
+import 'package:how_much_market/screens/product_detail/reportScreen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -40,17 +41,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 Positioned(
                   right: 16,
                   top: 16,
-                  child: IconButton(
-                    icon: Icon(
-                      isFavorited ? Icons.favorite : Icons.favorite_border,
-                      color: const Color.fromARGB(230, 255, 128, 128),
-                      size: 28,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isFavorited = !isFavorited;
-                      });
-                    },
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.report_gmailerrorred_outlined,
+                          color: Colors.redAccent,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ReportScreen(
+                                    postTitle: widget.product['title'],
+                                    userName: widget.product['userName'])),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          isFavorited ? Icons.favorite : Icons.favorite_border,
+                          color: const Color.fromARGB(230, 255, 128, 128),
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isFavorited = !isFavorited;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
