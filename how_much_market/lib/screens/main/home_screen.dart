@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:how_much_market/screens/main/favorite_screen.dart';
 import 'package:how_much_market/screens/main/mypage_screen.dart';
@@ -194,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         destinations: _navBarItems,
-        indicatorColor: Theme.of(context).primaryColorLight,
+        surfaceTintColor: Theme.of(context).primaryColorLight,
       ),
     );
   }

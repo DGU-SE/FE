@@ -25,7 +25,7 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       appBar: AppBar(
         title: const Text('PurchaseListScreen'),
       ),
-      body: const Column(children: [
+      body: Column(children: const [
         Text('템플릿'),
       ]),
     );

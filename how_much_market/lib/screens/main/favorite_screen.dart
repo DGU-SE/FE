@@ -25,7 +25,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       appBar: AppBar(
         title: const Text('FavoriteScreen'),
       ),
-      body: const Column(children: [
+      body: Column(children: const [
         Text('템플릿'),
       ]),
     );
