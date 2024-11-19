@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 
 class LocationSettingScreen extends StatefulWidget {
   const LocationSettingScreen({super.key});
@@ -9,136 +10,173 @@ class LocationSettingScreen extends StatefulWidget {
 }
 
 class _LocationSettingScreenState extends State<LocationSettingScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _addressDetailController =
-      TextEditingController();
-  final TextEditingController _zipcodeController = TextEditingController();
-  final TextEditingController _longitudeController = TextEditingController();
-  final TextEditingController _latitudeController = TextEditingController();
+  LatLng? _currentPosition; // 현재 위치
+  late GoogleMapController _mapController; // 지도 컨트롤러
+  final TextEditingController cityController = TextEditingController(); // 시 입력란
+  final TextEditingController districtController =
+      TextEditingController(); // 구 입력란
+  final TextEditingController neighborhoodController =
+      TextEditingController(); // 동 입력란
+  final TextEditingController detailAddressController =
+      TextEditingController(); // 상세 주소 입력란
 
-  // 임시 API 요청을 보내는 함수 (실제 API 호출 없이 성공 메시지만 표시)
-  Future<void> mockUpdateLocation() async {
-    // 임시로 입력받은 데이터 출력
-    final data = {
-      'longitude': double.tryParse(_longitudeController.text) ?? 127.11111,
-      'latitude': double.tryParse(_latitudeController.text) ?? 37.11111,
-      'zipcode': _zipcodeController.text,
-      'address': _addressController.text,
-      'addressDetail': _addressDetailController.text,
-    };
+  // 현재 위치 가져오기
+  Future<void> _getCurrentLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('위치 권한을 허용해주세요.')),
+        );
+        return;
+      }
 
-    print('Sending PATCH request to API with data: ${json.encode(data)}');
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
 
-    // 임시로 2초 딜레이 후 성공 메시지 표시
-    await Future.delayed(const Duration(seconds: 2));
+      setState(() {
+        _currentPosition = LatLng(position.latitude, position.longitude);
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('거주지 정보가 성공적으로 업데이트되었습니다.')),
-    );
+      // 지도 카메라를 현재 위치로 이동
+      _mapController.animateCamera(
+        CameraUpdate.newLatLngZoom(_currentPosition!, 15),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('현재 위치를 가져올 수 없습니다.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
+    double screenHeight = screenSize.height;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('거주지 설정'),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
+      body: Scrollbar(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('주소', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(
-                  hintText: '주소를 입력하세요',
-                  filled: true,
-                  fillColor: Color.fromRGBO(255, 255, 255, 1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
+              const Text(
+                '현재 위치',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 200, // 정사각형 지도
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? '주소를 입력해주세요' : null,
+                child: _currentPosition == null
+                    ? const Center(child: Text('위치를 가져오는 중...'))
+                    : GoogleMap(
+                        onMapCreated: (controller) =>
+                            _mapController = controller,
+                        initialCameraPosition: CameraPosition(
+                          target: _currentPosition!,
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: const MarkerId('current_location'),
+                            position: _currentPosition!,
+                            infoWindow: const InfoWindow(title: '현재 위치'),
+                          ),
+                        },
+                      ),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: _getCurrentLocation,
+                icon: const Icon(Icons.my_location),
+                label: const Text('현재 위치 가져오기'),
               ),
               const SizedBox(height: 16),
-              const Text('상세 주소',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
+
+              // 위도/경도 표시
+              if (_currentPosition != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        '위도: ${_currentPosition!.latitude.toStringAsFixed(6)}'),
+                    Text(
+                        '경도: ${_currentPosition!.longitude.toStringAsFixed(6)}'),
+                  ],
+                ),
+              const SizedBox(height: 16),
+
+              const Text(
+                '주소 입력',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              // 시 입력란
               TextFormField(
-                controller: _addressDetailController,
+                controller: cityController,
                 decoration: const InputDecoration(
-                  hintText: '상세 주소를 입력하세요',
+                  labelText: '시',
                   filled: true,
-                  fillColor: Color.fromARGB(255, 255, 255, 255),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
+                  fillColor: Color.fromRGBO(238, 238, 238, 1),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 구 입력란
+              TextFormField(
+                controller: districtController,
+                decoration: const InputDecoration(
+                  labelText: '구',
+                  filled: true,
+                  fillColor: Color.fromRGBO(238, 238, 238, 1),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 동 입력란
+              TextFormField(
+                controller: neighborhoodController,
+                decoration: const InputDecoration(
+                  labelText: '동',
+                  filled: true,
+                  fillColor: Color.fromRGBO(238, 238, 238, 1),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 상세 주소 입력란
+              TextFormField(
+                controller: detailAddressController,
+                decoration: const InputDecoration(
+                  labelText: '상세 주소',
+                  filled: true,
+                  fillColor: Color.fromRGBO(238, 238, 238, 1),
+                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('우편번호', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              TextFormField(
-                controller: _zipcodeController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: '우편번호를 입력하세요',
-                  filled: true,
-                  fillColor: Color.fromARGB(255, 255, 255, 255),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
+
+              // 저장 버튼
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // API 호출 또는 데이터 저장 로직
+                  },
+                  child: const Text('주소 저장'),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text('경도 (Longitude)',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              TextFormField(
-                controller: _longitudeController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  hintText: '경도 값을 입력하세요',
-                  filled: true,
-                  fillColor: Color.fromARGB(255, 255, 255, 255),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('위도 (Latitude)',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              TextFormField(
-                controller: _latitudeController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  hintText: '위도 값을 입력하세요',
-                  filled: true,
-                  fillColor: Color.fromARGB(255, 255, 255, 255),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    mockUpdateLocation();
-                  }
-                },
-                child: const Text('주소 저장'),
-              ),
+              SizedBox(height: screenHeight * 0.04),
             ],
           ),
         ),
