@@ -4,8 +4,17 @@ import 'package:how_much_market/widgets/ProductItemWidget.dart';
 
 class SearchResultScreen extends StatelessWidget {
   final String searchQuery;
+  final String filterStatus;
+  final String filterMinPrice;
+  final String filterMaxPrice;
 
-  SearchResultScreen({super.key, required this.searchQuery});
+  SearchResultScreen({
+    super.key,
+    required this.searchQuery,
+    required this.filterStatus,
+    required this.filterMinPrice,
+    required this.filterMaxPrice,
+  });
 
   final List<Map<String, dynamic>> productData = [
     {
