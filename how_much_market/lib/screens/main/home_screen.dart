@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SearchScreen(),
           const SearchScreen(),
           const ProductRegistrationScreen(),
-          const FavoriteScreen(),
+          FavoriteScreen(),
           const MyPageScreen(),
         ];
 

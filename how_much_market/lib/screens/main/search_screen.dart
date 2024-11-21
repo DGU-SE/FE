@@ -11,7 +11,11 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   TextEditingController searchController = TextEditingController();
+  TextEditingController minPriceController = TextEditingController();
+  TextEditingController maxPriceController = TextEditingController();
+
   List<String> recentSearches = [];
+  String selectedStatus = '판매 중'; // 초기값
 
   @override
   void initState() {
@@ -44,10 +48,21 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _navigateToSearchResult(String query) {
+    // 필터 데이터를 전달
+    String minPrice =
+        minPriceController.text.isEmpty ? '0' : minPriceController.text;
+    String maxPrice =
+        maxPriceController.text.isEmpty ? '무제한' : maxPriceController.text;
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SearchResultScreen(searchQuery: query),
+        builder: (context) => SearchResultScreen(
+          searchQuery: query,
+          filterStatus: selectedStatus,
+          filterMinPrice: minPrice,
+          filterMaxPrice: maxPrice,
+        ),
       ),
     );
   }
@@ -91,7 +106,10 @@ class _SearchScreenState extends State<SearchScreen> {
               },
             ),
             SizedBox(height: screenHeight * 0.03),
-            // 최근 검색어 제목과 삭제 버튼
+            // 필터링 UI
+            _buildFilters(screenWidth, screenHeight),
+            SizedBox(height: screenHeight * 0.02),
+            // 최근 검색어 제목
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -101,6 +119,10 @@ class _SearchScreenState extends State<SearchScreen> {
                     fontSize: screenWidth * 0.05,
                     fontWeight: FontWeight.bold,
                   ),
+                ),
+                IconButton(
+                  onPressed: _clearRecentSearches,
+                  icon: const Icon(Icons.delete_forever, color: Colors.red),
                 ),
               ],
             ),
@@ -151,6 +173,71 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFilters(double screenWidth, double screenHeight) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '필터링',
+          style: TextStyle(
+            fontSize: screenWidth * 0.05,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: screenHeight * 0.01),
+        Row(
+          children: [
+            // 상품 상태 필터
+            DropdownButton<String>(
+              value: selectedStatus,
+              items: ['판매 중', '판매 완료']
+                  .map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Text(status),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedStatus = value!;
+                });
+              },
+              borderRadius: BorderRadius.circular(10),
+            ),
+            SizedBox(width: screenWidth * 0.05),
+            // 최소/최대 가격 필터
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: TextField(
+                      controller: minPriceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: '최소 가격',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: screenWidth * 0.02),
+                  Flexible(
+                    child: TextField(
+                      controller: maxPriceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: '최대 가격',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
