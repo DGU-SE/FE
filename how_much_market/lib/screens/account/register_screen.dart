@@ -1,262 +1,263 @@
 import 'package:flutter/material.dart';
-import 'location_setting_screen.dart'; // LocationSettingScreen 파일을 import
+import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  String? selectedBank;
+  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _pwController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _zipcodeController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _addressDetailController =
+      TextEditingController();
+  final TextEditingController _accountNumberController =
+      TextEditingController();
 
-  void _checkDuplicateId() {
-    // 아이디 중복 확인 로직을 여기에 추가하세요
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('아이디 중복 확인 중...')),
-    );
+  Position? _currentPosition;
+  GoogleMapController? _mapController;
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    // Check for permission
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    // Get the current location
+    _currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      if (_mapController != null && _currentPosition != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLng(
+            LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _signUp() async {
+    if (_currentPosition == null) {
+      await _getCurrentLocation();
+    }
+
+    final url = Uri.parse('http://13.125.107.235/api/user/join');
+    final headers = {'Content-Type': 'application/json'};
+    final body = jsonEncode({
+      "id": _idController.text,
+      "pw": _pwController.text,
+      "name": _nameController.text,
+      "location": {
+        "longitude": _currentPosition?.longitude,
+        "latitude": _currentPosition?.latitude,
+        "zipcode": _zipcodeController.text,
+        "address": _addressController.text,
+        "addressDetail": _addressDetailController.text
+      },
+      "accountNumber": _accountNumberController.text,
+    });
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        // Handle the response data if needed
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Sign Up Successful: ${responseData['name']}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sign Up Failed: ${response.reasonPhrase}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    double screenWidth = screenSize.width;
-    double screenHeight = screenSize.height;
-
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('회원가입'),
+        title:
+            const Text('회원가입', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 2,
-        iconTheme: IconThemeData(color: Colors.grey[700]),
-        titleTextStyle: const TextStyle(
-          color: Colors.black,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
-        child: Form(
-          key: _formKey,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: screenHeight * 0.04),
-
-              // 아이디 필드와 중복 확인 버튼
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '아이디',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    onPressed: _checkDuplicateId,
-                    child: const Text(
-                      '중복 확인',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4.0),
-              TextFormField(
-                decoration: InputDecoration(
-                  hintText: '아이디를 입력하세요',
-                  hintStyle: TextStyle(
-                      color: Colors.grey[500], fontWeight: FontWeight.normal),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 6.0, horizontal: 10.0), // 패딩 조정
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '아이디를 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: screenHeight * 0.015),
-
-              // 비밀번호 필드
-              const Text(
-                '비밀번호 (특수문자 포함 8자 이상)',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4.0),
-              TextFormField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: '비밀번호를 입력하세요',
-                  hintStyle: TextStyle(
-                      color: Colors.grey[500], fontWeight: FontWeight.normal),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 6.0, horizontal: 10.0), // 패딩 조정
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null ||
-                      value.isEmpty ||
-                      value.length < 8 ||
-                      !RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
-                    return '특수문자를 포함하여 8자 이상 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: screenHeight * 0.015),
-
-              // 닉네임 필드
-              const Text(
-                '닉네임',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4.0),
-              TextFormField(
-                decoration: InputDecoration(
-                  hintText: '닉네임을 입력하세요',
-                  hintStyle: TextStyle(
-                      color: Colors.grey[500], fontWeight: FontWeight.normal),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 6.0, horizontal: 10.0), // 패딩 조정
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '닉네임을 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: screenHeight * 0.015),
-
-              // 계좌번호 필드
-              const Text(
-                '계좌번호',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4.0),
-              TextFormField(
-                decoration: InputDecoration(
-                  hintText: '계좌번호를 입력하세요',
-                  hintStyle: TextStyle(
-                      color: Colors.grey[500], fontWeight: FontWeight.normal),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 6.0, horizontal: 10.0), // 패딩 조정
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '계좌번호를 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: screenHeight * 0.015),
-
-              // 거래은행 필드
-              const Text(
-                '거래은행',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4.0),
-              DropdownButtonFormField<String>(
-                value: selectedBank,
-                items: <String>['국민은행', '신한은행', '농협은행', '우리은행']
-                    .map((bank) => DropdownMenuItem(
-                          value: bank,
-                          child: Text(bank),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedBank = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: '은행을 선택하세요',
-                  hintStyle: TextStyle(
-                      color: Colors.grey[500], fontWeight: FontWeight.normal),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 6.0, horizontal: 10.0), // 패딩 조정
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '거래은행을 선택해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: screenHeight * 0.04),
-
-              // 다음 단계 버튼
+              const SizedBox(height: 20),
+              _buildTextField(_idController, '아이디', Icons.person_outline),
+              _buildTextField(_pwController, '비밀번호', Icons.lock_outline,
+                  obscureText: true),
+              _buildTextField(_nameController, '이름', Icons.account_circle),
+              _buildTextField(_zipcodeController, '우편번호', Icons.location_on),
+              _buildTextField(_addressController, '주소 (예시:서울시 중구)', Icons.home),
+              _buildTextField(_addressDetailController,
+                  '상세주소 (예시:동국대학교 신공학관 5143)', Icons.details),
+              _buildTextField(
+                  _accountNumberController, '계좌번호', Icons.account_balance,
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LocationSettingScreen(),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: _getCurrentLocation,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    padding:
-                        EdgeInsets.symmetric(vertical: screenHeight * 0.018),
+                    backgroundColor: const Color(0xff3297DF),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: const Text(
-                    '다음단계 (거주지설정)',
+                    '현 위치 불러오기',
                     style: TextStyle(
-                      fontSize: 16, // slightly reduced font size
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      fontWeight: FontWeight.bold, // added bold
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: screenHeight * 0.04),
+              const SizedBox(height: 20),
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.5),
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: _currentPosition == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(
+                              _currentPosition!.latitude,
+                              _currentPosition!.longitude,
+                            ),
+                            zoom: 15,
+                          ),
+                          onMapCreated: (GoogleMapController controller) {
+                            _mapController = controller;
+                          },
+                          markers: _currentPosition != null
+                              ? {
+                                  Marker(
+                                    markerId: const MarkerId('currentLocation'),
+                                    position: LatLng(
+                                      _currentPosition!.latitude,
+                                      _currentPosition!.longitude,
+                                    ),
+                                  ),
+                                }
+                              : {},
+                        ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (_currentPosition != null)
+                Text(
+                  '현 위치 좌표: ${_currentPosition!.latitude.toStringAsFixed(3)} , ${_currentPosition!.longitude.toStringAsFixed(3)} (거리 계산용)',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
+                  ),
+                ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _signUp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff3297DF),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    '회원가입 완료',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+      TextEditingController controller, String labelText, IconData icon,
+      {bool obscureText = false,
+      TextInputType keyboardType = TextInputType.text}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: labelText,
+          prefixIcon: Icon(icon, color: const Color(0xff3297DF)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Color(0xff3297DF), width: 2.0),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          filled: true,
+          fillColor: Colors.grey[100],
         ),
       ),
     );

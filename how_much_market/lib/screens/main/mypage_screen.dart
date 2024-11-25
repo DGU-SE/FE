@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:how_much_market/screens/account/location_setting_screen.dart';
 import 'package:how_much_market/screens/account/login_screen.dart';
+import 'package:how_much_market/screens/account/mycurloc_screen.dart';
 import 'package:how_much_market/screens/product_list/bid_list_screen.dart';
 import 'package:how_much_market/screens/product_list/purchase_list_screen.dart';
 import 'package:how_much_market/screens/product_list/registration_list_screen.dart';
@@ -88,7 +88,7 @@ class MyPageScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const LocationSettingScreen()),
+                      builder: (context) => const MyCurLocScreen()),
                 );
               },
             ),

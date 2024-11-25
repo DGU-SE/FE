@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:how_much_market/screens/main/home_screen.dart';
+import 'package:how_much_market/screens/account/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
           backgroundColor: const Color.fromARGB(255, 245, 251, 255),
         ),
       ),
-      home: const HomeScreen(),
+      home: const LoginScreen(),
     );
   }
 }

@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:how_much_market/screens/account/register_screen.dart';
 import 'package:how_much_market/screens/account/trash_register_screen.dart';
 import 'package:how_much_market/screens/main/home_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class TrashLoginScreen extends StatefulWidget {
+  const TrashLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<TrashLoginScreen> createState() => _TrashLoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _TrashLoginScreenState extends State<TrashLoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -33,51 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _login() async {
-    final username = _usernameController.text;
-    final password = _passwordController.text;
-
-    if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이디와 비밀번호를 입력하세요.')),
-      );
-      return;
-    }
-
-    final response = await http.post(
-      Uri.parse('http://13.125.107.235/api/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id': username, 'password': password}),
-    );
-
-    if (response.statusCode == 200) {
-      final responseData = jsonDecode(response.body);
-      final token = responseData['token'];
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('authToken', token);
-      await prefs.setString('userId', username); // 유저 ID 저장
-
-      // 토큰 저장 확인
-      final savedToken = prefs.getString('authToken');
-      print('저장된 토큰: $savedToken');
-
-      // 로그인 완료 팝업
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인 완료되었습니다 (토큰: $savedToken)')),
-      );
-
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인 실패. 아이디와 비밀번호를 확인하세요.')),
-      );
-    }
   }
 
   @override
@@ -156,7 +107,13 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _login,
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                          builder: (context) => const HomeScreen()),
+                      (route) => false,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff3297DF),
                     padding:
@@ -185,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const RegisterScreen()),
+                          builder: (context) => const TrashLoginScreen()),
                     );
                   },
                   style: TextButton.styleFrom(
