@@ -24,4 +24,14 @@ class Product {
       seller: User.fromJson(json['seller']),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'price': price,
+      'seller': seller.toJson(),
+    };
+  }
 }

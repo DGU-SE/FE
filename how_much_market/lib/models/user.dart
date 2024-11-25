@@ -39,4 +39,17 @@ class User {
           (json['sales'] as List).map((e) => Transaction.fromJson(e)).toList(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'pw': pw,
+      'name': name,
+      'accountNumber': accountNumber,
+      'location': location.toJson(),
+      'products': products.map((e) => e.toJson()).toList(),
+      'purchases': purchases.map((e) => e.toJson()).toList(),
+      'sales': sales.map((e) => e.toJson()).toList(),
+    };
+  }
 }

@@ -22,4 +22,14 @@ class Location {
       addressDetail: json['addressDetail'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'longitude': longitude,
+      'latitude': latitude,
+      'zipcode': zipcode,
+      'address': address,
+      'addressDetail': addressDetail,
+    };
+  }
 }

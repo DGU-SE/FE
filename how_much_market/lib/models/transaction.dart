@@ -28,4 +28,15 @@ class Transaction {
       seller: User.fromJson(json['seller']),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'finalPrice': finalPrice,
+      'status': status,
+      'product': product.toJson(),
+      'buyer': buyer.toJson(),
+      'seller': seller.toJson(),
+    };
+  }
 }
