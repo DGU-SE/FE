@@ -55,7 +55,8 @@ class ProductService {
     }
   }
 
-  Future<List<Product>> searchProducts(String keyword) async {
+  Future<List<Product>> searchProducts(
+      String keyword, double l, double d, int i, int j, String s) async {
     final url = Uri.parse('${baseUrl}api/product/search?keyword=$keyword');
     final response = await http.get(url);
 
@@ -87,5 +88,18 @@ class ProductService {
     } else {
       throw Exception('Failed to fetch image.');
     }
+  }
+}
+
+Future<List<Product>> searchProducts(String keyword, double latitude,
+    double longitude, int lowBound, int upBound, String productStatus) async {
+  final response = await http.get(Uri.parse(
+      'http://13.125.107.235/api/product/search?keyword=$keyword&latitude=$latitude&longitude=$longitude&lowBound=$lowBound&upBound=$upBound&productStatus=$productStatus'));
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = json.decode(response.body);
+    return data.map((productData) => Product.fromJson(productData)).toList();
+  } else {
+    throw Exception('Failed to load products');
   }
 }

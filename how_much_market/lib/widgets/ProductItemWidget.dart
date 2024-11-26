@@ -1,118 +1,143 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:how_much_market/models/comment.dart';
+import 'package:how_much_market/models/product.dart';
 import 'package:how_much_market/screens/product_detail/product_detail_screen.dart';
+import 'package:how_much_market/services/CommnetService.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class ProductItemWidget extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String distance;
-  final String timeAgo;
-  final String auctionStartPrice;
-  final String highestBid;
+class ProductItemWidget extends StatefulWidget {
+  final int productId;
 
-  final String price;
-  final String saleType; // 판매 방식 (경매 또는 즉시 판매 등)
-  final String userName;
-  final String userLocation;
-  final String description; // 상품 설명 추가
-  final String auctionEndTime; // 경매 종료 시간 추가
+  const ProductItemWidget({super.key, required this.productId});
 
-  const ProductItemWidget({
-    super.key,
-    required this.imageUrl,
-    required this.title,
-    required this.distance,
-    required this.timeAgo,
-    required this.auctionStartPrice,
-    required this.price,
-    required this.highestBid,
-    required this.saleType,
-    required this.userName,
-    required this.userLocation,
-    required this.description,
-    required this.auctionEndTime,
-  });
+  @override
+  State<ProductItemWidget> createState() => _ProductItemWidgetState();
+}
+
+class _ProductItemWidgetState extends State<ProductItemWidget> {
+  Product? product;
+  List<Comment>? comments;
+  bool isLoading = true;
+  String token =
+      'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1bmlxdWUtdXNlci1pZC0yIiwiaWF0IjoxNzMxOTQ2NjkyLCJleHAiOjE3MzE5NDc0NzZ9.RYVUUKbUX15UG_tEprSkEd5tf4mHe6gXSNFl9H5rlmY';
+  String baseUrl = 'http://13.125.107.235/api/product/image/';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProduct();
+    _fetchComments();
+  }
+
+  Future<void> _fetchProduct() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://13.125.107.235/api/product/${widget.productId}'),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          product = Product.fromJson(json.decode(response.body));
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load product');
+      }
+    } catch (e) {
+      print('Error fetching product: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchComments() async {
+    try {
+      final fetchedComments =
+          await CommentService.fetchComments(widget.productId, token);
+      setState(() {
+        comments = fetchedComments;
+      });
+    } catch (e) {
+      print('Error fetching comments: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Size screenSize = MediaQuery.of(context).size;
-    double screenWidth = screenSize.width;
-    double screenHeight = screenSize.height;
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (product == null) {
+      return const Center(
+        child: Text('Failed to load product.'),
+      );
+    }
 
     return GestureDetector(
       onTap: () {
-        // ProductDetailScreen으로 이동하면서 정보 전달
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(
-              product: {
-                'imageUrl': imageUrl,
-                'title': title,
-                'price': price,
-                'auctionStartPrice': auctionStartPrice,
-                'highestBid': highestBid,
-                'saleType': saleType,
-                'userName': userName,
-                'userLocation': userLocation,
-                'description': description,
-                'auctionEndTime': auctionEndTime,
-              },
-            ),
+            builder: (context) =>
+                ProductDetailScreen(product: product!, comments: comments!),
           ),
         );
       },
       child: SizedBox(
-        height: screenHeight * 0.14,
+        height: 120,
         child: Row(
           children: [
-            SizedBox(width: screenWidth * 0.05),
+            const SizedBox(width: 16),
             ClipRRect(
-              borderRadius: BorderRadius.circular(10), // 이미지 둥글게 처리
-              child: imageUrl.startsWith('http')
-                  ? Image.network(
-                      imageUrl,
-                      width: screenWidth * 0.3,
-                      height: screenHeight * 0.125,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.asset(
-                      imageUrl,
-                      width: screenWidth * 0.3,
-                      height: screenHeight * 0.125,
-                      fit: BoxFit.cover,
-                    ),
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                product!.productPictures.isNotEmpty
+                    ? baseUrl +
+                        product!.productPictures[0]
+                            ['blobUrl'] // 이미지 URL을 네트워크에서 가져옴
+                    : 'assets/no_image.jpg', // 기본 이미지
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
             ),
-            SizedBox(width: screenWidth * 0.04),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: screenHeight * 0.012),
+                  const SizedBox(height: 8),
                   Text(
-                    title,
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: screenHeight * 0.022,
-                      fontWeight: FontWeight.w400,
+                    product!.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: screenHeight * 0.008),
+                  const SizedBox(height: 8),
                   Text(
-                    '$timeAgo · $distance',
-                    style: TextStyle(
-                      color: Colors.black38,
-                      fontSize: screenHeight * 0.017,
+                    product!.productDetail,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 8),
                   Text(
-                    price,
-                    style: TextStyle(
+                    '₩${product!.price}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: Colors.black87,
-                      fontSize: screenHeight * 0.026,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],

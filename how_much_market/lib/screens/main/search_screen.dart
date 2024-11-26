@@ -15,7 +15,7 @@ class _SearchScreenState extends State<SearchScreen> {
   TextEditingController maxPriceController = TextEditingController();
 
   List<String> recentSearches = [];
-  String selectedStatus = '판매 중'; // 초기값
+  String selectedStatus = 'unsold'; // 초기값
 
   @override
   void initState() {
@@ -52,7 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
     String minPrice =
         minPriceController.text.isEmpty ? '0' : minPriceController.text;
     String maxPrice =
-        maxPriceController.text.isEmpty ? '무제한' : maxPriceController.text;
+        maxPriceController.text.isEmpty ? '10000000' : maxPriceController.text;
 
     Navigator.push(
       context,
@@ -193,7 +193,7 @@ class _SearchScreenState extends State<SearchScreen> {
             // 상품 상태 필터
             DropdownButton<String>(
               value: selectedStatus,
-              items: ['판매 중', '판매 완료']
+              items: ['unsold', 'sold']
                   .map((status) => DropdownMenuItem(
                         value: status,
                         child: Text(status),

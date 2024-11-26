@@ -1,27 +1,24 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:how_much_market/models/comment.dart';
 
 class CommentService {
-  final String baseUrl = 'http://13.125.107.235/';
+  static const String baseUrl = 'http://13.125.107.235/api/comment';
 
-  Future<void> postComment(int productId, String comment) async {
-    final url = Uri.parse('${baseUrl}api/comment');
-    final response = await http.post(url,
-        body: jsonEncode({'productId': productId, 'comment': comment}));
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to post comment.');
-    }
-  }
-
-  Future<List<dynamic>> getComments(int productId) async {
-    final url = Uri.parse('${baseUrl}api/comment/$productId');
-    final response = await http.get(url);
+  static Future<List<Comment>> fetchComments(
+      int productId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/$productId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final List<dynamic> jsonData = json.decode(response.body);
+      return jsonData.map((e) => Comment.fromJson(e)).toList();
     } else {
-      throw Exception('Failed to fetch comments.');
+      throw Exception('Failed to fetch comments');
     }
   }
 }

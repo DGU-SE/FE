@@ -11,37 +11,6 @@ class PurchaseListScreen extends StatefulWidget {
 
 class _PurchaseListScreenState extends State<PurchaseListScreen> {
   // 샘플 구매 상품 리스트
-  final List<ProductItemWidget> purchasedProducts = [
-    const ProductItemWidget(
-      imageUrl: 'assets/images/no_image.jpg',
-      title: '구매한 상품 1',
-      distance: '1km',
-      timeAgo: '2일 전',
-      auctionStartPrice: '50,000원',
-      highestBid: '70,000원',
-      price: '80,000원',
-      saleType: 'auction',
-      userName: '판매자 1',
-      userLocation: '대전',
-      description: '구매 상품 설명 1',
-      auctionEndTime: '2024-11-10',
-    ),
-    const ProductItemWidget(
-      imageUrl: 'assets/images/no_image.jpg',
-      title: '구매한 상품 2',
-      distance: '3km',
-      timeAgo: '5시간 전',
-      auctionStartPrice: '30,000원',
-      highestBid: '45,000원',
-      price: '50,000원',
-      saleType: 'direct',
-      userName: '판매자 2',
-      userLocation: '서울',
-      description: '구매 상품 설명 2',
-      auctionEndTime: '2024-11-12',
-    ),
-    // 추가 상품 데이터를 여기에 작성
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -54,15 +23,15 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
       appBar: AppBar(
         title: const Text('구매한 상품 목록'),
       ),
-      body: purchasedProducts.isNotEmpty
+      body: true
           ? ListView.builder(
               padding: EdgeInsets.symmetric(
                 vertical: screenHeight * 0.02,
                 horizontal: screenWidth * 0.05,
               ),
-              itemCount: purchasedProducts.length,
+              itemCount: 1,
               itemBuilder: (context, index) {
-                return purchasedProducts[index];
+                return const ProductItemWidget(productId: 1);
               },
             )
           : Center(
