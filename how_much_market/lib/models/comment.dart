@@ -1,31 +1,31 @@
-import 'package:how_much_market/models/product.dart';
-import 'package:how_much_market/models/user.dart';
-
 class Comment {
-  final int id;
-  final Product product;
-  final User user;
+  final int productId;
+  final String userId;
   final String content;
-  final String createdAt;
-  final bool isSecret;
+  final bool secret;
 
   Comment({
-    required this.id,
-    required this.product,
-    required this.user,
+    required this.productId,
+    required this.userId,
     required this.content,
-    required this.createdAt,
-    required this.isSecret,
+    required this.secret,
   });
 
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
-      id: json['id'],
-      product: Product.fromJson(json['product']),
-      user: User.fromJson(json['user']),
+      productId: json['productId'],
+      userId: json['userId'],
       content: json['content'],
-      createdAt: json['createdAt'],
-      isSecret: json['isSecret'],
+      secret: json['secret'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'productId': productId,
+      'userId': userId,
+      'content': content,
+      'secret': secret,
+    };
   }
 }

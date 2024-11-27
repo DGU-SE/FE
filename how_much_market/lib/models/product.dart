@@ -1,27 +1,47 @@
-import 'package:how_much_market/models/user.dart';
-
 class Product {
   final int id;
   final String name;
-  final String description;
+  final String productDetail;
   final int price;
-  final User seller;
+  String locationName;
+  final String regTime;
+  final String dealTime;
+  final String productStatus;
+  final bool onAuction;
+  final List<Map<String, dynamic>>
+      productPictures; // Map<String, dynamic>로 리스트 유지
+  final double distanceKiloMeter;
+  final int locationId;
 
   Product({
     required this.id,
     required this.name,
-    required this.description,
+    required this.productDetail,
+    this.locationName = '',
     required this.price,
-    required this.seller,
+    required this.regTime,
+    required this.dealTime,
+    required this.productStatus,
+    required this.onAuction,
+    required this.productPictures,
+    required this.distanceKiloMeter,
+    required this.locationId,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
       name: json['name'],
-      description: json['description'],
+      productDetail: json['productDetail'],
+      locationName: json['locationName'] ?? '',
       price: json['price'],
-      seller: User.fromJson(json['seller']),
+      regTime: json['regTime'],
+      dealTime: json['dealTime'],
+      productStatus: json['productStatus'],
+      onAuction: json['onAuction'],
+      productPictures: List<Map<String, dynamic>>.from(json['productPictures']),
+      distanceKiloMeter: json['distanceKiloMeter'] ?? 0.0,
+      locationId: json['locationId'] ?? 0,
     );
   }
 
@@ -29,9 +49,15 @@ class Product {
     return {
       'id': id,
       'name': name,
-      'description': description,
+      'productDetail': productDetail,
       'price': price,
-      'seller': seller.toJson(),
+      'regTime': regTime,
+      'dealTime': dealTime,
+      'productStatus': productStatus,
+      'onAuction': onAuction,
+      'productPictures': productPictures,
+      'distanceKiloMeter': distanceKiloMeter,
+      'locationId': locationId,
     };
   }
 }

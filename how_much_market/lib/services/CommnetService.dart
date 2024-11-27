@@ -1,27 +1,54 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:how_much_market/models/comment.dart';
 
 class CommentService {
-  final String baseUrl = 'http://13.125.107.235/';
+  static const String baseUrl = 'http://13.125.107.235/api/comment';
 
-  Future<void> postComment(int productId, String comment) async {
-    final url = Uri.parse('${baseUrl}api/comment');
-    final response = await http.post(url,
-        body: jsonEncode({'productId': productId, 'comment': comment}));
+  // 댓글 가져오기
+  static Future<List<Comment>> fetchComments(
+      int productId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/$productId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to post comment.');
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = json.decode(response.body);
+      return jsonData.map((e) => Comment.fromJson(e)).toList();
+    } else {
+      throw Exception('Failed to fetch comments');
     }
   }
 
-  Future<List<dynamic>> getComments(int productId) async {
-    final url = Uri.parse('${baseUrl}api/comment/$productId');
-    final response = await http.get(url);
+  // 댓글 등록하기
+  static Future<void> registerComment(
+    int productId,
+    String token,
+    String content,
+    bool isSecret,
+    String userId, // 사용자 ID 추가
+  ) async {
+    final Map<String, dynamic> requestData = {
+      'productId': productId,
+      'userId': userId,
+      'content': content,
+      'isSecret': isSecret,
+    };
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to fetch comments.');
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // Authorization 헤더에 토큰 추가
+      },
+      body: json.encode(requestData),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to register comment');
     }
   }
 }

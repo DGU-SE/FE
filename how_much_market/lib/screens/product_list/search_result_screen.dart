@@ -1,14 +1,16 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:how_much_market/widgets/ProductItemWidget.dart';
+import 'package:how_much_market/services/ProductService.dart';
+import 'package:how_much_market/widgets/ProductItemWidget.dart'; // 상품 서비스 (API 요청) 클래스
+import 'package:how_much_market/models/product.dart'; // 상품 모델 클래스
 
-class SearchResultScreen extends StatelessWidget {
+class SearchResultScreen extends StatefulWidget {
   final String searchQuery;
   final String filterStatus;
   final String filterMinPrice;
   final String filterMaxPrice;
 
-  SearchResultScreen({
+  const SearchResultScreen({
     super.key,
     required this.searchQuery,
     required this.filterStatus,
@@ -16,44 +18,28 @@ class SearchResultScreen extends StatelessWidget {
     required this.filterMaxPrice,
   });
 
-  final List<Map<String, dynamic>> productData = [
-    {
-      'imageUrl': 'assets/images/no_image.jpg',
-      'title': '아이폰 6 Pro 판매합니다.',
-      'distance': '500m',
-      'timeAgo': '10분 전',
-      'auctionStartPrice': "0원",
-      'highestBid': "0원",
-      'price': '200,000 원',
-      'saleType': '즉시판매',
-      'userName': '홍길동',
-      'userLocation': '서울시 강남구',
-    },
-    {
-      'imageUrl': 'assets/images/no_image.jpg',
-      'title': '아이폰 7 Pro 경매합니다.',
-      'distance': '600m',
-      'timeAgo': '20분 전',
-      'auctionStartPrice': "100,000원",
-      'highestBid': "150,000원",
-      'price': '300,000 원',
-      'saleType': 'auction',
-      'userName': '이순신',
-      'userLocation': '서울시 종로구',
-    },
-    {
-      'imageUrl': 'assets/images/no_image.jpg',
-      'title': '아이폰 8 Pro 경매합니다아아아아아아아아아아아아아아아.',
-      'distance': '700m',
-      'timeAgo': '30분 전',
-      'auctionStartPrice': "2,000원",
-      'highestBid': "500,000원",
-      'price': '400,000 원',
-      'saleType': 'auction',
-      'userName': '장보고',
-      'userLocation': '부산시 해운대구',
-    },
-  ];
+  @override
+  _SearchResultScreenState createState() => _SearchResultScreenState();
+}
+
+class _SearchResultScreenState extends State<SearchResultScreen> {
+  late Future<List<Product>> _products;
+
+  @override
+  void initState() {
+    super.initState();
+    // ProductService 인스턴스를 생성
+    final productService = ProductService();
+
+    _products = productService.searchProducts(
+      widget.searchQuery,
+      33.3, // 위도 (예시 값)
+      22.2, // 경도 (예시 값)
+      int.parse(widget.filterMinPrice), // 최소 가격
+      int.parse(widget.filterMaxPrice), // 최대 가격
+      widget.filterStatus, // 상품 상태 (unsold, sold 등)
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,31 +49,36 @@ class SearchResultScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(searchQuery),
+        title: Text(widget.searchQuery),
       ),
-      body: ListView.builder(
-        itemCount: productData.length,
-        itemBuilder: (context, index) {
-          var product = productData[index];
+      body: FutureBuilder<List<Product>>(
+        future: _products,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator()); // 데이터 로딩 중
+          } else if (snapshot.hasError) {
+            return Center(child: Text('오류 발생: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('상품이 없습니다.'));
+          }
 
-          return Column(
-            children: [
-              ProductItemWidget(
-                imageUrl: product['imageUrl'],
-                title: product['title'],
-                distance: product['distance'],
-                timeAgo: product['timeAgo'],
-                auctionStartPrice: product['auctionStartPrice'],
-                highestBid: product['highestBid'],
-                price: product['price'],
-                saleType: product['saleType'],
-                userName: product['userName'],
-                userLocation: product['userLocation'],
-                description: "제품설명입니다.\n가나다가나다가나다\nABC\n1234567890",
-                auctionEndTime: "2024-11-12",
-              ),
-              const Divider(color: Color.fromARGB(255, 235, 235, 235)),
-            ],
+          final products = snapshot.data!; // 검색된 상품 목록
+
+          return ListView.builder(
+            padding: EdgeInsets.symmetric(
+              vertical: screenHeight * 0.02,
+              horizontal: screenWidth * 0.05,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return Column(
+                children: [
+                  ProductItemWidget(productId: product.id), // 상품 아이템 렌더링
+                  const Divider(color: Color.fromARGB(255, 235, 235, 235)),
+                ],
+              );
+            },
           );
         },
       ),
