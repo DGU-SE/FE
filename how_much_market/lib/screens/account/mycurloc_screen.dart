@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:how_much_market/screens/account/update_location_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -138,7 +139,11 @@ class _MyCurLocScreenState extends State<MyCurLocScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton(
                     onPressed: () {
-                      // 거주지 정보 변경하기 버튼 눌렀을 때의 동작
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const UpdateLocationScreen()),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xff3297DF),
