@@ -5,12 +5,56 @@ import 'package:http/http.dart' as http;
 class ProductService {
   final String baseUrl = 'http://13.125.107.235/';
 
-  Future<void> registerProduct(Product product) async {
-    final url = Uri.parse('${baseUrl}api/product');
-    final response = await http.post(url, body: jsonEncode(product.toJson()));
+  // 제품 등록 함수
+  Future<Map<String, dynamic>> registerProduct({
+    required String name,
+    required int price,
+    required DateTime dealTime,
+    required double latitude,
+    required double longitude,
+    required String productDetail,
+    required bool onAuction,
+    required String userId,
+  }) async {
+    // 요청 데이터 준비
+    final Map<String, dynamic> requestData = {
+      'name': name,
+      'price': price,
+      'dealTime': dealTime.toIso8601String(),
+      'locationDTO': {
+        'longitude': 22.2,
+        'latitude': 33.3,
+        'zipcode': null,
+        'address': '주소 문자열', // 실제 주소 값으로 바꿔야 함
+        'addressDetail': null
+      },
+      'productDetail': productDetail,
+      'onAuction': onAuction,
+      'userId': userId,
+    };
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to register product.');
+    // API 요청
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}api/product'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': '••••••', // 실제 Authorization token을 여기에 입력
+        },
+        body: json.encode(requestData),
+      );
+
+      // 응답 처리
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // 성공적으로 등록된 경우 응답 데이터 반환
+        return json.decode(response.body);
+      } else {
+        // 실패한 경우 예외 발생
+        throw Exception('Failed to register product');
+      }
+    } catch (e) {
+      // 예외 처리
+      throw Exception('Error registering product: $e');
     }
   }
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProductRegistrationScreen extends StatefulWidget {
   const ProductRegistrationScreen({super.key});
@@ -14,7 +16,63 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   DateTime auctionEndTime = DateTime.now().add(const Duration(days: 1));
   TextEditingController titleController = TextEditingController();
   TextEditingController priceController = TextEditingController();
-  List<Map<String, dynamic>> registeredProducts = [];
+  TextEditingController descriptionController = TextEditingController();
+  TextEditingController locationController = TextEditingController();
+
+  // 상품 등록 API
+  Future<void> registerProduct({
+    required String saleType,
+    required String title,
+    required int price,
+    required DateTime auctionEndTime,
+    required String productDetail,
+    required String location,
+    required bool onAuction,
+  }) async {
+    const String apiUrl = 'http://13.125.107.235/api/product'; // 서버 API URL
+
+    final Map<String, dynamic> requestData = {
+      'name': title,
+      'price': price,
+      'dealTime': auctionEndTime.toIso8601String(),
+      'locationDTO': {
+        'longitude': 22.22, // 예시로 넣은 값, 실제 경도 값으로 바꿔야 함
+        'latitude': 33.33, // 예시로 넣은 값, 실제 위도 값으로 바꿔야 함
+        'zipcode': null,
+        'address': location,
+        'addressDetail': null,
+      },
+      'productDetail': productDetail,
+      'onAuction': onAuction,
+      'userId': 'unique-user-id', // 실제 사용자 ID를 넣어야 함
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer token', // 실제 토큰을 입력해야 함
+        },
+        body: json.encode(requestData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // 상품 등록 성공
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('상품이 등록되었습니다.')),
+        );
+        Navigator.pop(context); // 등록 후 화면 닫기
+      } else {
+        throw Exception('상품 등록 실패: ${response.statusCode}');
+      }
+    } catch (e) {
+      // 예외 처리
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('상품 등록 실패: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -192,6 +250,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               ),
               SizedBox(height: screenHeight * 0.01),
               TextField(
+                controller: descriptionController,
                 maxLines: 4,
                 decoration: InputDecoration(
                   hintText: '상품 설명을 입력하세요',
@@ -213,6 +272,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               ),
               SizedBox(height: screenHeight * 0.01),
               TextField(
+                controller: locationController,
                 decoration: InputDecoration(
                   hintText: '거래 희망 장소를 입력하세요',
                   hintStyle: theme.textTheme.titleSmall,
@@ -237,25 +297,16 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                         const SnackBar(content: Text('제목과 가격을 입력해주세요')),
                       );
                     } else {
-                      // 값들을 리스트로 저장
-                      Map<String, dynamic> product = {
-                        'saleType': saleType,
-                        'title': titleController.text,
-                        'price': priceController.text,
-                        'auctionDuration': auctionDuration,
-                        'auctionEndTime': auctionEndTime,
-                      };
-                      setState(() {
-                        registeredProducts.add(product);
-                      });
-
-                      // 상품 등록 성공 메시지
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('상품이 등록되었습니다.')),
+                      // 서버에 데이터 전송
+                      registerProduct(
+                        saleType: saleType,
+                        title: titleController.text,
+                        price: int.parse(priceController.text),
+                        auctionEndTime: auctionEndTime,
+                        productDetail: descriptionController.text,
+                        location: locationController.text,
+                        onAuction: saleType == 'auction',
                       );
-
-                      // 창을 닫음
-                      Navigator.pop(context);
                     }
                   },
                   style: ElevatedButton.styleFrom(
