@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:how_much_market/models/product.dart';
+import 'package:how_much_market/services/Transaction.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 경로 확인 필요
 
 class ProductPurchaseConfirmationScreen extends StatelessWidget {
   final Product product;
@@ -74,9 +76,22 @@ class ProductPurchaseConfirmationScreen extends StatelessWidget {
           vertical: screenHeight * 0.02,
         ),
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context);
-            _showSnackbar(context, '구매 요청을 보냈습니다.');
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('authToken'); // 로그인된 사용자 토큰
+            if (token == null) {
+              _showSnackbar(context, '로그인이 필요합니다.');
+              return;
+            }
+
+            try {
+              final transactionService = TransactionService();
+              await transactionService.purchaseProduct(product.id, token);
+              Navigator.pop(context);
+              _showSnackbar(context, '구매 요청을 보냈습니다.');
+            } catch (e) {
+              _showSnackbar(context, '구매 요청 실패: $e');
+            }
           },
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.symmetric(
@@ -234,15 +249,28 @@ class _ProductBidConfirmationScreenState
     );
   }
 
-  void _handleBid() {
+  void _handleBid() async {
     double bidAmount = double.tryParse(bidController.text) ?? 0.0;
     if (bidController.text.isEmpty) {
       _showSnackbar(context, '응찰 금액을 입력해주세요.');
     } else if (bidAmount <= widget.product.price) {
       _showSnackbar(context, '응찰 금액이 현재 최고가보다 높아야 합니다.');
     } else {
-      Navigator.pop(context);
-      _showSnackbar(context, '응찰하였습니다.');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken'); // 로그인된 사용자 토큰
+      if (token == null) {
+        _showSnackbar(context, '로그인이 필요합니다.');
+        return;
+      }
+
+      try {
+        final transactionService = TransactionService();
+        await transactionService.placeBid(widget.product.id, bidAmount, token);
+        Navigator.pop(context);
+        _showSnackbar(context, '응찰하였습니다.');
+      } catch (e) {
+        _showSnackbar(context, '응찰 실패: $e');
+      }
     }
   }
 

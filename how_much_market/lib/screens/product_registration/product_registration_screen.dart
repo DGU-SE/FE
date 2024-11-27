@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // 추가
 import 'dart:convert';
 
 class ProductRegistrationScreen extends StatefulWidget {
@@ -48,11 +49,17 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
     };
 
     try {
+      final prefs = await SharedPreferences.getInstance(); // 오류 해결
+      final token = prefs.getString('authToken'); // 토큰 불러오기
+      if (token != null) {
+        print('저장된 토큰: $token');
+      }
+
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer token', // 실제 토큰을 입력해야 함
+          'Authorization': 'Bearer $token', // Bearer 추가
         },
         body: json.encode(requestData),
       );

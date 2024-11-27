@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:how_much_market/services/CommnetService.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 경로 확인 필요
 
 class CommentRegistrationScreen extends StatefulWidget {
   final String productTitle;
+  final int productId; // productId 추가
 
-  const CommentRegistrationScreen({super.key, required this.productTitle});
+  const CommentRegistrationScreen({
+    super.key,
+    required this.productTitle,
+    required this.productId, // productId 전달
+  });
 
   @override
   _CommentRegistrationScreenState createState() =>
@@ -14,15 +21,43 @@ class _CommentRegistrationScreenState extends State<CommentRegistrationScreen> {
   final TextEditingController _commentController = TextEditingController();
   bool _isSecret = false;
 
-  void _registerComment() {
+  // 댓글 등록 API 호출
+  Future<void> _registerComment() async {
     if (_commentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("댓글 내용을 입력해주세요.")),
       );
-    } else {
-      Navigator.pop(context);
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken'); // SharedPreferences에서 토큰 가져오기
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("로그인이 필요합니다.")),
+        );
+        return;
+      }
+
+      // 사용자 ID (여기서는 예시로 'unique-user-id'를 사용)
+      const userId = 'unique-user-id';
+
+      await CommentService.registerComment(
+        widget.productId, // 상품 ID
+        token, // Authorization Token
+        _commentController.text, // 댓글 내용
+        _isSecret, // 비밀글 여부
+        userId, // 사용자 ID
+      );
+
+      Navigator.pop(context); // 댓글 등록 후 화면을 닫음
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("댓글이 등록되었습니다.")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("댓글 등록 실패: $e")),
       );
     }
   }

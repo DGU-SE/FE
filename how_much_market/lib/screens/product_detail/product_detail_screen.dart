@@ -201,6 +201,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             MaterialPageRoute(
                               builder: (context) => CommentRegistrationScreen(
                                 productTitle: widget.product.name,
+                                productId: widget.product.id,
                               ),
                             ),
                           );

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:how_much_market/models/comment.dart';
 import 'package:how_much_market/models/product.dart';
 import 'package:how_much_market/screens/product_detail/product_detail_screen.dart';
-import 'package:how_much_market/services/CommnetService.dart';
+import 'package:how_much_market/services/CommnetService.dart'; // 경로 확인 필요
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart'; // 추가
 
 class ProductItemWidget extends StatefulWidget {
   final int productId;
@@ -19,15 +20,26 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   Product? product;
   List<Comment>? comments;
   bool isLoading = true;
-  String token =
-      'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1bmlxdWUtdXNlci1pZC0yIiwiaWF0IjoxNzMxOTQ2NjkyLCJleHAiOjE3MzE5NDc0NzZ9.RYVUUKbUX15UG_tEprSkEd5tf4mHe6gXSNFl9H5rlmY';
+  String? token; // 토큰을 저장할 변수
   String baseUrl = 'http://13.125.107.235/api/product/image/';
 
   @override
   void initState() {
     super.initState();
+    _fetchToken(); // 토큰을 가져오는 메소드 호출
     _fetchProduct();
-    _fetchComments();
+  }
+
+  // 토큰을 가져오는 메소드
+  Future<void> _fetchToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedToken = prefs.getString('authToken');
+    if (storedToken != null) {
+      setState(() {
+        token = storedToken; // 가져온 토큰을 저장
+        print('저장된 토큰: $token');
+      });
+    }
   }
 
   Future<void> _fetchProduct() async {
@@ -53,9 +65,14 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   }
 
   Future<void> _fetchComments() async {
+    if (token == null) {
+      print('토큰이 없습니다.');
+      return; // 토큰이 없으면 댓글을 가져오지 않음
+    }
+
     try {
-      final fetchedComments =
-          await CommentService.fetchComments(widget.productId, token);
+      final fetchedComments = await CommentService.fetchComments(
+          widget.productId, token!); // token을 전달
       setState(() {
         comments = fetchedComments;
       });
