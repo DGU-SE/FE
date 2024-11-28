@@ -32,23 +32,23 @@ class _CommentRegistrationScreenState extends State<CommentRegistrationScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('authToken'); // SharedPreferences에서 토큰 가져오기
-      if (token == null) {
+      final userId = prefs.getString('userId');
+
+      if (userId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("로그인이 필요합니다.")),
+          const SnackBar(content: Text("유저 ID가 없습니다.")),
         );
         return;
+      } else {
+        print("유저아이디 : $userId");
       }
 
-      // 사용자 ID (여기서는 예시로 'unique-user-id'를 사용)
-      const userId = 'unique-user-id';
-
+      // 댓글 등록 API 호출
       await CommentService.registerComment(
-        widget.productId, // 상품 ID
-        token, // Authorization Token
-        _commentController.text, // 댓글 내용
-        _isSecret, // 비밀글 여부
-        userId, // 사용자 ID
+        widget.productId,
+        userId,
+        _commentController.text,
+        _isSecret,
       );
 
       Navigator.pop(context); // 댓글 등록 후 화면을 닫음

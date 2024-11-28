@@ -23,32 +23,33 @@ class CommentService {
     }
   }
 
-  // 댓글 등록하기
+// 댓글 등록하기
   static Future<void> registerComment(
-    int productId,
-    String token,
-    String content,
-    bool isSecret,
-    String userId, // 사용자 ID 추가
-  ) async {
-    final Map<String, dynamic> requestData = {
-      'productId': productId,
-      'userId': userId,
-      'content': content,
-      'isSecret': isSecret,
+      int productId, String userId, String content, bool isSecret) async {
+    final requestBody = {
+      "productId": productId,
+      "userId": userId,
+      "content": content,
+      "isSecret": isSecret
     };
 
-    final response = await http.post(
-      Uri.parse(baseUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', // Authorization 헤더에 토큰 추가
-      },
-      body: json.encode(requestData),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to register comment');
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        print('댓글 등록 성공: $responseBody');
+      } else {
+        print('댓글 등록 실패: ${response.statusCode} ${response.body}');
+      }
+    } catch (e) {
+      print('예외 발생: $e');
     }
   }
 }

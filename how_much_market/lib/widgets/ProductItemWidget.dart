@@ -18,7 +18,7 @@ class ProductItemWidget extends StatefulWidget {
 
 class _ProductItemWidgetState extends State<ProductItemWidget> {
   Product? product;
-  List<Comment>? comments;
+  List<Comment>? comments = [];
   bool isLoading = true;
   String? token; // 토큰을 저장할 변수
   String baseUrl = 'http://13.125.107.235/api/product/image/';
@@ -28,6 +28,7 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
     super.initState();
     _fetchToken(); // 토큰을 가져오는 메소드 호출
     _fetchProduct();
+    _fetchComments();
   }
 
   // 토큰을 가져오는 메소드
@@ -67,17 +68,20 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   Future<void> _fetchComments() async {
     if (token == null) {
       print('토큰이 없습니다.');
-      return; // 토큰이 없으면 댓글을 가져오지 않음
+      return;
     }
 
     try {
       final fetchedComments = await CommentService.fetchComments(
           widget.productId, token!); // token을 전달
       setState(() {
-        comments = fetchedComments;
+        comments = fetchedComments ?? []; // null 대신 빈 리스트로 처리
       });
     } catch (e) {
       print('Error fetching comments: $e');
+      setState(() {
+        comments = []; // 에러 발생 시에도 빈 리스트로 설정
+      });
     }
   }
 

@@ -17,12 +17,14 @@ class TransactionService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to process purchase.');
+      print('응답 본문: ${response.body}'); // 응답 본문 출력
+      throw Exception('Failed to process purchase: ${response.body}');
     }
   }
 
   // 응찰하기
-  Future<void> placeBid(int auctionId, double amount, String token) async {
+  Future<void> placeBid(
+      String userID, int auctionId, double amount, String token) async {
     final url = Uri.parse('${baseUrl}api/auction/bid');
     final response = await http.post(
       url,
@@ -31,14 +33,15 @@ class TransactionService {
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
-        'userId': 'unique-user-id', // 실제 사용자 ID로 변경해야 함
+        'userId': userID, // 실제 사용자 ID로 변경해야 함
         'auctionId': auctionId,
         'amount': amount,
       }),
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to place bid.');
+      print('응답 본문: ${response.body}'); // 응답 본문 출력
+      throw Exception('Failed to place bid: ${response.body}');
     }
   }
 
