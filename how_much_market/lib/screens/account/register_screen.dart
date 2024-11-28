@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:how_much_market/screens/account/login_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -64,6 +65,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _signUp() async {
+    if (_idController.text.isEmpty ||
+        _pwController.text.isEmpty ||
+        _nameController.text.isEmpty ||
+        _zipcodeController.text.isEmpty ||
+        _addressController.text.isEmpty ||
+        _addressDetailController.text.isEmpty ||
+        _accountNumberController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('모든 필드를 채워주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     if (_currentPosition == null) {
       await _getCurrentLocation();
     }
@@ -88,20 +104,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = jsonDecode(response.body);
+        final responseData = jsonDecode(utf8.decode(response.bodyBytes));
         // Handle the response data if needed
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Sign Up Successful: ${responseData['name']}')),
+            content: Text('회원가입 성공: ${responseData['name']}'),
+            backgroundColor: Colors.green,
+          ),
         );
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()));
       } else {
+        final errorMessage = response.body.isNotEmpty
+            ? jsonDecode(utf8.decode(response.bodyBytes))['message'] ??
+                '알 수 없는 오류'
+            : '알 수 없는 오류';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign Up Failed: ${response.reasonPhrase}')),
+          SnackBar(
+            content: Text('회원가입 실패: $errorMessage'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(
+          content: Text('오류 발생: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

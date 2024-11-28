@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:how_much_market/screens/account/register_screen.dart';
-import 'package:how_much_market/screens/account/trash_register_screen.dart';
 import 'package:how_much_market/screens/main/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
