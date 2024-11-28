@@ -64,8 +64,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) => ReportScreen(
-                                    postTitle: widget.product.name,
-                                    userName: widget.product.locationName)),
+                                      postTitle: widget.product.name,
+                                      productId: widget.product.id,
+                                    )),
                           );
                         },
                       ),

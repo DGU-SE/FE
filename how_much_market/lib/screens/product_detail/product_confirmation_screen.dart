@@ -258,6 +258,7 @@ class _ProductBidConfirmationScreenState
     } else {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('authToken'); // 로그인된 사용자 토큰
+      final userId = prefs.getString('userId'); // 사용자 ID 가져오기
       if (token == null) {
         _showSnackbar(context, '로그인이 필요합니다.');
         return;
@@ -265,7 +266,8 @@ class _ProductBidConfirmationScreenState
 
       try {
         final transactionService = TransactionService();
-        await transactionService.placeBid(widget.product.id, bidAmount, token);
+        await transactionService.placeBid(userId!, widget.product.id, bidAmount,
+            token); // userId와 token을 null 체크 후 사용
         Navigator.pop(context);
         _showSnackbar(context, '응찰하였습니다.');
       } catch (e) {

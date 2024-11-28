@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:how_much_market/services/FraudService.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ReportScreen extends StatefulWidget {
   final String postTitle;
-  final String userName;
+  final int productId; // 상품 ID 추가
 
   const ReportScreen({
     super.key,
     required this.postTitle,
-    required this.userName,
+    required this.productId, // 상품 ID 전달
   });
 
   @override
@@ -62,14 +65,6 @@ class _ReportScreenState extends State<ReportScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: screenHeight * 0.01),
-                  Text(
-                    '판매자: ${widget.userName}',
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.045,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -108,12 +103,21 @@ class _ReportScreenState extends State<ReportScreen> {
           vertical: screenHeight * 0.02,
         ),
         child: ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             if (reportController.text.isNotEmpty) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('신고가 접수되었습니다.')),
-              );
+              final fraudService = FraudService();
+              try {
+                await fraudService.reportFraud(
+                    widget.productId, reportController.text);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('신고가 접수되었습니다.')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('신고 실패: $e')),
+                );
+              }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('신고 내용을 입력해주세요.')),
