@@ -251,28 +251,40 @@ class _ProductBidConfirmationScreenState
 
   void _handleBid() async {
     double bidAmount = double.tryParse(bidController.text) ?? 0.0;
+
+    // 응찰 금액 검증
     if (bidController.text.isEmpty) {
       _showSnackbar(context, '응찰 금액을 입력해주세요.');
+      return;
     } else if (bidAmount <= widget.product.price) {
       _showSnackbar(context, '응찰 금액이 현재 최고가보다 높아야 합니다.');
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('authToken'); // 로그인된 사용자 토큰
-      final userId = prefs.getString('userId'); // 사용자 ID 가져오기
-      if (token == null) {
-        _showSnackbar(context, '로그인이 필요합니다.');
-        return;
-      }
+      return;
+    }
 
-      try {
-        final transactionService = TransactionService();
-        await transactionService.placeBid(userId!, widget.product.id, bidAmount,
-            token); // userId와 token을 null 체크 후 사용
-        Navigator.pop(context);
-        _showSnackbar(context, '응찰하였습니다.');
-      } catch (e) {
-        _showSnackbar(context, '응찰 실패: $e');
-      }
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId'); // 사용자 ID 가져오기
+
+    if (userId == null) {
+      _showSnackbar(context, '로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      final transactionService = TransactionService();
+
+      // PlaceBid 호출
+      await transactionService.placeBid(
+        userId,
+        widget.product.id,
+        bidAmount,
+      );
+
+      // 성공 처리
+      Navigator.pop(context);
+      _showSnackbar(context, '응찰하였습니다.');
+    } catch (e) {
+      // 실패 처리
+      _showSnackbar(context, '응찰 실패: $e');
     }
   }
 
