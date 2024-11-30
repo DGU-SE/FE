@@ -6,6 +6,7 @@ import 'package:how_much_market/screens/product_detail/product_detail_screen.dar
 import 'package:how_much_market/screens/product_registration/product_edit_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 토큰을 가져오는 함수
@@ -30,7 +31,9 @@ Future<List<Product>> fetchProducts() async {
   );
 
   if (response.statusCode == 200) {
-    List jsonResponse = json.decode(response.body);
+    String decodedBody =
+        utf8.decode(response.bodyBytes); // UTF-8 디코딩 처리 // UTF-8 디코딩 처리
+    List jsonResponse = json.decode(decodedBody);
     return jsonResponse.map((data) => Product.fromJson(data)).toList();
   } else {
     throw Exception('상품을 불러오는 데 실패했습니다.');
@@ -125,6 +128,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 String imageUrl = product.productPictures.isNotEmpty
                     ? product.productPictures[0]['blobUrl']
                     : '';
+                String fullImageUrl =
+                    'http://13.125.107.235/api/product/image/$imageUrl';
 
                 return Card(
                   margin: const EdgeInsets.all(10),
@@ -132,26 +137,48 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(10),
                     leading: imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.image_not_supported),
-                          ) // 이미지 표시 및 오류 처리 추가
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: Image.network(
+                              fullImageUrl,
+                              fit: BoxFit.cover,
+                              width: 60,
+                              height: 60,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.image_not_supported),
+                            ),
+                          )
                         : const Icon(Icons.image_not_supported),
-                    title: Text(product.name),
+                    title: Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('가격: ${product.price}원'),
-                        Text('상태: ${product.productStatus}'),
-                        Text('등록일: ${product.regTime}'),
+                        Text(
+                          '${product.price}원',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        Text(
+                          '${product.regTime.substring(0, 10)} ',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
+                        TextButton(
                           onPressed: () {
                             // 수정 버튼 클릭 시 수정 화면으로 이동
                             Navigator.push(
@@ -163,9 +190,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               ),
                             );
                           },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.blue,
+                          ),
+                          child: const Text(
+                            '수정',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
+                        const SizedBox(width: 8),
+                        TextButton(
                           onPressed: () async {
                             print('Deleting product with ID: ${product.id}');
                             final token = await getAuthToken();
@@ -195,6 +232,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               );
                             }
                           },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.grey,
+                          ),
+                          child: const Text(
+                            '삭제',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
