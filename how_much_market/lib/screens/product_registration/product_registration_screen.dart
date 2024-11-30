@@ -53,6 +53,15 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       'onAuction': saleType == 'auction',
     };
 
+    // 경매 데이터 추가
+    if (saleType == 'auction') {
+      requestData['auctionDTO'] = {
+        'startPrice': int.parse(priceController.text), // 경매 시작 가격
+        'startTime': DateTime.now().toIso8601String(), // 현재 시간을 시작 시간으로 설정
+        'endTime': auctionEndTime.toIso8601String(), // 계산된 경매 종료 시간
+      };
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('authToken'); // 저장된 인증 토큰 가져오기
