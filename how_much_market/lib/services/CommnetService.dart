@@ -8,18 +8,20 @@ class CommentService {
   // 댓글 가져오기
   static Future<List<Comment>> fetchComments(
       int productId, String token) async {
+    final url = Uri.parse('http://13.125.107.235/api/comment/$productId');
+
     final response = await http.get(
-      Uri.parse('$baseUrl/$productId'),
+      url,
       headers: {
         'Authorization': 'Bearer $token',
       },
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonData = json.decode(response.body);
-      return jsonData.map((e) => Comment.fromJson(e)).toList();
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((commentData) => Comment.fromJson(commentData)).toList();
     } else {
-      throw Exception('Failed to fetch comments');
+      throw Exception('Failed to load comments');
     }
   }
 
@@ -35,7 +37,7 @@ class CommentService {
 
     try {
       final response = await http.post(
-        Uri.parse(baseUrl),
+        Uri.parse('$baseUrl/create'),
         headers: {
           'Content-Type': 'application/json',
         },

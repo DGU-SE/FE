@@ -41,13 +41,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             flexibleSpace: Stack(
               children: [
                 FlexibleSpaceBar(
-                    background: Image.network(
-                  widget.product.productPictures.isNotEmpty &&
-                          widget.product.productPictures[0]['blobUrl'] != null
-                      ? baseUrl + widget.product.productPictures[0]['blobUrl']
-                      : 'assets/no_image.jpg',
-                  fit: BoxFit.cover,
-                )),
+                  background: Image.network(
+                    widget.product.productPictures.isNotEmpty
+                        ? baseUrl + widget.product.productPictures[0]['blobUrl']
+                        : 'assets/images/no_image.jpg', // 기본 이미지
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // 이미지 로딩 실패 시 기본 이미지 표시
+                      return Image.asset('assets/images/no_image.jpg',
+                          fit: BoxFit.cover);
+                    },
+                  ),
+                ),
                 Positioned(
                   right: 16,
                   top: 16,
@@ -219,19 +224,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   SizedBox(height: screenHeight * 0.02),
 
-                  // 댓글 위젯 생성
-                  ...widget.comments.isNotEmpty
-                      ? widget.comments.map((comment) {
-                          return _buildComment(
-                            'assets/images/user_profile.png',
-                            comment.userId,
-                            comment.secret ? '비밀 댓글입니다.' : comment.content,
-                          );
-                        }).toList()
-                      : [const Text('댓글이 없습니다.')],
+// 댓글 리스트뷰 생성
+                  widget.comments.isNotEmpty
+                      ? ListView.builder(
+                          itemCount: widget.comments.length,
+                          itemBuilder: (context, index) {
+                            final comment = widget.comments[index];
+                            return _buildComment(
+                              'assets/images/user_profile.png',
+                              comment.userId,
+                              comment.secret ? '비밀 댓글입니다.' : comment.content,
+                            );
+                          },
+                          shrinkWrap: true, // ListView 크기 제한
+                          physics:
+                              const NeverScrollableScrollPhysics(), // 내부 스크롤 방지
+                        )
+                      : const Text('댓글이 없습니다.'),
 
                   SizedBox(height: screenHeight * 0.1),
-
                   // 응찰하기 or 구매하기 버튼
                   Center(
                     child: ElevatedButton(

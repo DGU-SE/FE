@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _products = productService.searchProducts(
-      'Sample', // 기본 검색어, 필요에 따라 변경
+      '', // 기본 검색어, 필요에 따라 변경
       33.3, // 위도
       22.2, // 경도
       0, // 최소 가격
@@ -186,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           selectedIndex = index;
           _products = productService.searchProducts(
-            'Sample', // 기본 검색어, 필요에 따라 변경
+            '', // 기본 검색어, 필요에 따라 변경
             33.3, // 위도
             22.2, // 경도
             0, // 최소 가격
