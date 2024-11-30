@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:how_much_market/models/product.dart';
 import 'package:how_much_market/services/Transaction.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // 경로 확인 필요
+import 'package:http/http.dart' as http; // http 요청을 위한 패키지 추가
 
 class ProductPurchaseConfirmationScreen extends StatelessWidget {
   final Product product;
@@ -130,11 +132,40 @@ class ProductBidConfirmationScreen extends StatefulWidget {
 class _ProductBidConfirmationScreenState
     extends State<ProductBidConfirmationScreen> {
   final TextEditingController bidController = TextEditingController();
+  double? currentPrice;
 
   @override
   void dispose() {
     bidController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentPrice();
+  }
+
+  // currentPrice를 가져오는 메소드
+  Future<void> _fetchCurrentPrice() async {
+    try {
+      // 서버에서 currentPrice를 가져오기 위해 API 호출
+      final response = await http.get(
+        Uri.parse(
+            'http://13.125.107.235/api/auction/product/${widget.product.id}'),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        setState(() {
+          currentPrice = responseData['currentPrice'];
+        });
+      } else {
+        _showSnackbar(context, '응답 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showSnackbar(context, '오류 발생: $e');
+    }
   }
 
   @override
@@ -197,7 +228,14 @@ class _ProductBidConfirmationScreenState
             SizedBox(height: screenHeight * 0.02),
             _buildPriceRow('경매 시작가', widget.product.price),
             SizedBox(height: screenHeight * 0.01),
-            _buildPriceRow('현재 최고가', widget.product.price, isHighlighted: true),
+            // currentPrice가 null일 경우 표시되지 않게 처리
+
+            _buildPriceRow(
+                '현재 최고가',
+                currentPrice != null
+                    ? currentPrice!.toInt()
+                    : widget.product.price,
+                isHighlighted: true),
           ],
         ),
       ),
