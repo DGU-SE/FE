@@ -16,7 +16,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ProductService productService = ProductService();
-  int selectedIndex = 0;
   late Future<List<Product>> _products;
 
   final List<Widget> screens = [
@@ -30,14 +29,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _products = productService.searchProducts(
-      'Sample', // 기본 검색어, 필요에 따라 변경
-      33.3, // 위도
-      22.2, // 경도
-      0, // 최소 가격
-      10000000, // 최대 가격
-      'unsold', // 상품 상태
-    );
+    _fetchProducts(); // 처음 데이터를 로드
+  }
+
+  // 새로고침을 위한 메서드
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _products = productService.searchProducts(
+        '', // 기본 검색어
+        33.3, // 위도
+        22.2, // 경도
+        0, // 최소 가격
+        10000000, // 최대 가격
+        'unsold', // 상품 상태
+      );
+    });
   }
 
   @override
@@ -99,55 +105,39 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const Divider(color: Color.fromARGB(255, 242, 242, 242)),
 
-          // 3가지 라디오 버튼 추가
-          SizedBox(
-            height: screenHeight * 0.05,
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 20.0),
-                  child: _buildRadioButton(0),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: _buildRadioButton(1),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: _buildRadioButton(2),
-                ),
-              ],
-            ),
-          ),
-
           const Divider(color: Color.fromARGB(255, 240, 240, 240)),
-          Expanded(
-            child: FutureBuilder<List<Product>>(
-              future: _products,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('오류 발생: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('상품이 없습니다.'));
-                }
 
-                final products = snapshot.data!;
-                return ListView.builder(
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return Column(
-                      children: [
-                        ProductItemWidget(productId: product.id),
-                        const Divider(
-                            color: Color.fromARGB(255, 235, 235, 235)),
-                      ],
-                    );
-                  },
-                );
-              },
+          // 새로고침 기능을 추가한 부분
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchProducts, // 새로고침 시 호출될 함수
+              child: FutureBuilder<List<Product>>(
+                future: _products,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('오류 발생: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('상품이 없습니다.'));
+                  }
+
+                  final products = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return Column(
+                        children: [
+                          ProductItemWidget(productId: product.id),
+                          const Divider(
+                              color: Color.fromARGB(255, 235, 235, 235)),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -168,60 +158,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         destinations: _navBarItems,
         surfaceTintColor: Theme.of(context).primaryColorLight,
-      ),
-    );
-  }
-
-  Widget _buildRadioButton(int index) {
-    bool isSelected = index == selectedIndex;
-    List<String> buttonLabels = ['전체보기', '경매', '즉시구매'];
-    List<IconData> buttonIcons = [
-      Icons.view_list,
-      Icons.access_time,
-      Icons.shopping_cart,
-    ];
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedIndex = index;
-          _products = productService.searchProducts(
-            'Sample', // 기본 검색어, 필요에 따라 변경
-            33.3, // 위도
-            22.2, // 경도
-            0, // 최소 가격
-            10000000, // 최대 가격
-            'unsold',
-          );
-        });
-      },
-      child: Container(
-        width: 80,
-        height: 35,
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.white,
-          borderRadius: BorderRadius.circular(30.0),
-          border: Border.all(color: Colors.grey),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Icon(
-              buttonIcons[index],
-              size: 18,
-              color: isSelected ? Colors.white : Colors.black,
-            ),
-            const SizedBox(width: 4.0),
-            Text(
-              buttonLabels[index],
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

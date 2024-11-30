@@ -26,9 +26,14 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   @override
   void initState() {
     super.initState();
-    _fetchToken(); // 토큰을 가져오는 메소드 호출
-    _fetchProduct();
-    _fetchComments();
+    _fetchToken().then((_) {
+      if (token != null) {
+        _fetchProduct(); // 토큰이 있을 때만 상품 정보를 가져옴
+        _fetchComments(); // 토큰이 있을 때만 댓글 정보를 가져옴
+      } else {
+        print('토큰이 없습니다!!!!.');
+      }
+    });
   }
 
   // 토큰을 가져오는 메소드
@@ -67,7 +72,7 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
 
   Future<void> _fetchComments() async {
     if (token == null) {
-      print('토큰이 없습니다.');
+      print('토큰이 없습니다!!!!.');
       return;
     }
 
@@ -118,13 +123,16 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
               borderRadius: BorderRadius.circular(10),
               child: Image.network(
                 product!.productPictures.isNotEmpty
-                    ? baseUrl +
-                        product!.productPictures[0]
-                            ['blobUrl'] // 이미지 URL을 네트워크에서 가져옴
-                    : 'assets/no_image.jpg', // 기본 이미지
+                    ? baseUrl + product!.productPictures[0]['blobUrl']
+                    : 'assets/images/no_image.jpg', // 기본 이미지
                 width: 100,
                 height: 100,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // 이미지 로딩 실패 시 기본 이미지 표시
+                  return Image.asset('assets/images/no_image.jpg',
+                      fit: BoxFit.cover);
+                },
               ),
             ),
             const SizedBox(width: 16),
