@@ -18,6 +18,9 @@ class ProductService {
     required String productDetail,
     required bool onAuction,
     required String userId,
+    double? startPrice, // 경매 시작 가격 (옵션)
+    DateTime? auctionStartTime, // 경매 시작 시간 (옵션)
+    DateTime? auctionEndTime, // 경매 종료 시간 (옵션)
   }) async {
     // 요청 데이터 준비
     final Map<String, dynamic> requestData = {
@@ -25,15 +28,22 @@ class ProductService {
       'price': price,
       'dealTime': dealTime.toIso8601String(),
       'locationDTO': {
-        'longitude': 22.2,
-        'latitude': 33.3,
+        'longitude': longitude,
+        'latitude': latitude,
         'zipcode': null,
         'address': '주소 문자열', // 실제 주소 값으로 바꿔야 함
-        'addressDetail': null
+        'addressDetail': null,
       },
       'productDetail': productDetail,
       'onAuction': onAuction,
       'userId': userId,
+      // 경매 데이터 추가
+      if (onAuction)
+        'auctionDTO': {
+          'startPrice': startPrice,
+          'startTime': auctionStartTime?.toIso8601String(),
+          'endTime': auctionEndTime?.toIso8601String(),
+        }
     };
 
     // API 요청
@@ -53,7 +63,8 @@ class ProductService {
         return json.decode(response.body);
       } else {
         // 실패한 경우 예외 발생
-        throw Exception('Failed to register product');
+        throw Exception(
+            'Failed to register product. Status code: ${response.statusCode}');
       }
     } catch (e) {
       // 예외 처리
@@ -102,19 +113,6 @@ class ProductService {
     }
   }
 
-  Future<List<Product>> searchProducts(
-      String keyword, double l, double d, int i, int j, String s) async {
-    final url = Uri.parse('${baseUrl}api/product/search?keyword=$keyword');
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final List<dynamic> products = jsonDecode(response.body);
-      return products.map((e) => Product.fromJson(e)).toList();
-    } else {
-      throw Exception('Failed to search products.');
-    }
-  }
-
   static Future<void> uploadImage(
       int productId, File imageFile, String token) async {
     try {
@@ -157,20 +155,20 @@ class ProductService {
       throw Exception('Failed to fetch image.');
     }
   }
-}
 
-Future<List<Product>> searchProducts(String keyword, double latitude,
-    double longitude, int lowBound, int upBound, String productStatus) async {
-  final response = await http.get(Uri.parse(
-      'http://13.125.107.235/api/product/search?keyword=$keyword&latitude=$latitude&longitude=$longitude&lowBound=$lowBound&upBound=$upBound&productStatus=$productStatus'));
+  Future<List<Product>> searchProducts(String keyword, double latitude,
+      double longitude, int lowBound, int upBound, String productStatus) async {
+    final response = await http.get(Uri.parse(
+        'http://13.125.107.235/api/product/search?keyword=$keyword&latitude=$latitude&longitude=$longitude&lowBound=$lowBound&upBound=$upBound&productStatus=$productStatus'));
 
-  if (response.statusCode == 200) {
-    // 바이트 데이터를 UTF-8로 디코딩
-    final decodedBody = utf8.decode(response.bodyBytes);
-    // 디코딩된 데이터를 JSON으로 파싱
-    final List<dynamic> data = json.decode(decodedBody);
-    return data.map((productData) => Product.fromJson(productData)).toList();
-  } else {
-    throw Exception('Failed to load products');
+    if (response.statusCode == 200) {
+      // 바이트 데이터를 UTF-8로 디코딩
+      final decodedBody = utf8.decode(response.bodyBytes);
+      // 디코딩된 데이터를 JSON으로 파싱
+      final List<dynamic> data = json.decode(decodedBody);
+      return data.map((productData) => Product.fromJson(productData)).toList();
+    } else {
+      throw Exception('Failed to load products');
+    }
   }
 }

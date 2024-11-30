@@ -10,18 +10,26 @@ class CommentService {
       int productId, String token) async {
     final url = Uri.parse('http://13.125.107.235/api/comment/$productId');
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      return data.map((commentData) => Comment.fromJson(commentData)).toList();
-    } else {
-      throw Exception('Failed to load comments');
+      if (response.statusCode == 200) {
+        // UTF-8 디코딩 후 JSON 파싱
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final List<dynamic> data = json.decode(decodedBody);
+        return data
+            .map((commentData) => Comment.fromJson(commentData))
+            .toList();
+      } else {
+        throw Exception('Failed to load comments');
+      }
+    } catch (e) {
+      throw Exception('Error fetching comments: $e');
     }
   }
 

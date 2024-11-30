@@ -6,6 +6,7 @@ import 'package:how_much_market/screens/main/search_screen.dart';
 import 'package:how_much_market/screens/product_registration/product_registration_screen.dart';
 import 'package:how_much_market/services/ProductService.dart';
 import 'package:how_much_market/widgets/ProductItemWidget.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ProductService productService = ProductService();
   late Future<List<Product>> _products;
+  Timer? _timer; // Timer 객체 선언
 
   final List<Widget> screens = [
     const SearchScreen(),
@@ -30,6 +32,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _fetchProducts(); // 처음 데이터를 로드
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Timer 해제
+    super.dispose();
+  }
+
+  // 자동 새로고침을 위한 타이머 설정
+  void _startAutoRefresh() {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _fetchProducts(); // 10초마다 데이터 새로고침
+    });
   }
 
   // 새로고침을 위한 메서드
@@ -89,12 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       IconButton(
                         icon: const Icon(Icons.notifications),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SearchScreen(),
-                            ),
-                          );
+                          _fetchProducts();
                         },
                       ),
                     ],
@@ -104,7 +114,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const Divider(color: Color.fromARGB(255, 242, 242, 242)),
-
           const Divider(color: Color.fromARGB(255, 240, 240, 240)),
 
           // 새로고침 기능을 추가한 부분

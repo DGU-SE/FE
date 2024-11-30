@@ -55,8 +55,10 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
       );
 
       if (response.statusCode == 200) {
+        // UTF-8 디코딩 후 JSON 파싱
+        final decodedBody = utf8.decode(response.bodyBytes);
         setState(() {
-          product = Product.fromJson(json.decode(response.body));
+          product = Product.fromJson(json.decode(decodedBody));
           isLoading = false;
         });
       } else {
