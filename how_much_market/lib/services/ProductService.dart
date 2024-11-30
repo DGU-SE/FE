@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:how_much_market/models/product.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'dart:convert';
+import 'dart:io';
 
 class ProductService {
   final String baseUrl = 'http://13.125.107.235/';
@@ -112,14 +115,35 @@ class ProductService {
     }
   }
 
-  Future<void> uploadImage(int productId, String imagePath) async {
-    final url = Uri.parse('${baseUrl}api/product/$productId/image');
-    final request = http.MultipartRequest('POST', url)
-      ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+  static Future<void> uploadImage(
+      int productId, File imageFile, String token) async {
+    try {
+      // 서버 URL
+      String url = 'http://13.125.107.235/api/product/$productId/image';
 
-    final response = await request.send();
-    if (response.statusCode != 200) {
-      throw Exception('Failed to upload image.');
+      // MultipartRequest를 사용하여 이미지를 전송합니다.
+      var request = http.MultipartRequest('POST', Uri.parse(url))
+        ..headers['Authorization'] = 'Bearer $token' // Authorization 헤더 추가
+        ..files.add(await http.MultipartFile.fromPath(
+          'images', // 필드 이름
+          imageFile.path, // 업로드할 파일의 경로
+          contentType: MediaType('image', 'jpeg'), // 이미지 파일 타입 (예시: JPEG)
+        ));
+
+      // 서버에 요청을 보내고 응답을 받습니다.
+      var response = await request.send();
+
+      // 응답 처리
+      if (response.statusCode == 200) {
+        print('Image uploaded successfully!');
+        final responseBody = await response.stream.bytesToString();
+        var jsonResponse = json.decode(responseBody);
+        print('Response: $jsonResponse');
+      } else {
+        print('Failed to upload image. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
     }
   }
 
@@ -141,7 +165,10 @@ Future<List<Product>> searchProducts(String keyword, double latitude,
       'http://13.125.107.235/api/product/search?keyword=$keyword&latitude=$latitude&longitude=$longitude&lowBound=$lowBound&upBound=$upBound&productStatus=$productStatus'));
 
   if (response.statusCode == 200) {
-    final List<dynamic> data = json.decode(response.body);
+    // 바이트 데이터를 UTF-8로 디코딩
+    final decodedBody = utf8.decode(response.bodyBytes);
+    // 디코딩된 데이터를 JSON으로 파싱
+    final List<dynamic> data = json.decode(decodedBody);
     return data.map((productData) => Product.fromJson(productData)).toList();
   } else {
     throw Exception('Failed to load products');

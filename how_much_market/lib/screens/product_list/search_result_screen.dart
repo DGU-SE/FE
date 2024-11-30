@@ -1,3 +1,4 @@
+// SearchResultScreen.dart
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:how_much_market/services/ProductService.dart';
@@ -28,15 +29,15 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
   @override
   void initState() {
     super.initState();
-    // ProductService 인스턴스를 생성
     final productService = ProductService();
 
+    // API 요청 시 가격과 상태 필터가 제대로 적용되도록 수정
     _products = productService.searchProducts(
       widget.searchQuery,
       33.3, // 위도 (예시 값)
       22.2, // 경도 (예시 값)
-      int.parse(widget.filterMinPrice), // 최소 가격
-      int.parse(widget.filterMaxPrice), // 최대 가격
+      int.tryParse(widget.filterMinPrice) ?? 0, // 최소 가격
+      int.tryParse(widget.filterMaxPrice) ?? 10000000, // 최대 가격
       widget.filterStatus, // 상품 상태 (unsold, sold 등)
     );
   }
@@ -62,7 +63,7 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
             return const Center(child: Text('상품이 없습니다.'));
           }
 
-          final products = snapshot.data!; // 검색된 상품 목록
+          final products = snapshot.data!;
 
           return ListView.builder(
             padding: EdgeInsets.symmetric(

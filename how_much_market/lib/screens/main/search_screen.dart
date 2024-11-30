@@ -1,3 +1,4 @@
+// SearchScreen.dart
 import 'package:flutter/material.dart';
 import 'package:how_much_market/screens/product_list/search_result_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,6 +54,13 @@ class _SearchScreenState extends State<SearchScreen> {
         minPriceController.text.isEmpty ? '0' : minPriceController.text;
     String maxPrice =
         maxPriceController.text.isEmpty ? '10000000' : maxPriceController.text;
+
+    // 데이터 출력
+    print('Navigating to SearchResultScreen with the following values:');
+    print('Search Query: $query');
+    print('Filter Status: $selectedStatus');
+    print('Min Price: $minPrice');
+    print('Max Price: $maxPrice');
 
     Navigator.push(
       context,

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class ProductRegistrationScreen extends StatefulWidget {
   const ProductRegistrationScreen({super.key});
@@ -19,6 +21,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   TextEditingController priceController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
   TextEditingController locationController = TextEditingController();
+  File? _image; // 사진 파일을 저장할 변수
 
   // 상품 등록 API 호출
   Future<void> registerProduct() async {
@@ -81,6 +84,8 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // 상품이 등록되면, 이미지 업로드
+        await uploadImage(json.decode(response.body)['id']);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('상품이 성공적으로 등록되었습니다.')),
         );
@@ -94,6 +99,49 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('상품 등록 실패: $e')),
       );
+    }
+  }
+
+  // 이미지 업로드
+  Future<void> uploadImage(int productId) async {
+    if (_image == null) {
+      return;
+    }
+
+    final String apiUrl = 'http://13.125.107.235/api/product/$productId/image';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('authToken');
+
+      final request = http.MultipartRequest('POST', Uri.parse(apiUrl))
+        ..headers['Authorization'] = 'Bearer $token' // 인증 헤더 추가
+        ..files.add(await http.MultipartFile.fromPath(
+          'images',
+          _image!.path,
+        ));
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        print('Image uploaded successfully!');
+      } else {
+        print('Failed to upload image: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+    }
+  }
+
+  // 이미지 선택
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
     }
   }
 
@@ -186,6 +234,22 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               hint: '거래 희망 장소를 입력하세요',
               theme: theme,
             ),
+
+            // 사진 선택 버튼
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _pickImage,
+              child: const Text('사진 선택'),
+            ),
+
+            // 선택된 사진 미리보기
+            if (_image != null)
+              Image.file(
+                _image!,
+                width: screenWidth * 0.8,
+                height: screenHeight * 0.3,
+                fit: BoxFit.cover,
+              ),
 
             // 등록 버튼
             const SizedBox(height: 30),
