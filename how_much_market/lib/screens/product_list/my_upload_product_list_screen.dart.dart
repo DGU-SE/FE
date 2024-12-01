@@ -6,7 +6,6 @@ import 'package:how_much_market/screens/product_detail/product_detail_screen.dar
 import 'package:how_much_market/screens/product_registration/product_edit_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 토큰을 가져오는 함수
@@ -17,7 +16,7 @@ Future<String?> getAuthToken() async {
 
 // 상품 목록을 불러오는 함수
 Future<List<Product>> fetchProducts() async {
-  final token = await getAuthToken(); // 토큰을 가져옴
+  final token = await getAuthToken();
 
   if (token == null) {
     throw Exception('로그인이 필요합니다.');
@@ -26,13 +25,12 @@ Future<List<Product>> fetchProducts() async {
   final response = await http.get(
     Uri.parse('http://13.125.107.235/api/product/my'),
     headers: {
-      'Authorization': 'Bearer $token', // Authorization 헤더에 토큰 추가
+      'Authorization': 'Bearer $token',
     },
   );
 
   if (response.statusCode == 200) {
-    String decodedBody =
-        utf8.decode(response.bodyBytes); // UTF-8 디코딩 처리 // UTF-8 디코딩 처리
+    String decodedBody = utf8.decode(response.bodyBytes);
     List jsonResponse = json.decode(decodedBody);
     return jsonResponse.map((data) => Product.fromJson(data)).toList();
   } else {
@@ -42,7 +40,7 @@ Future<List<Product>> fetchProducts() async {
 
 // 상품에 대한 댓글을 불러오는 함수
 Future<List<Comment>> fetchComments(int productId) async {
-  final token = await getAuthToken(); // 토큰을 가져옴
+  final token = await getAuthToken();
 
   if (token == null) {
     throw Exception('로그인이 필요합니다.');
@@ -51,13 +49,12 @@ Future<List<Comment>> fetchComments(int productId) async {
   final response = await http.get(
     Uri.parse('http://13.125.107.235/api/comment/$productId'),
     headers: {
-      'Authorization': 'Bearer $token', // Authorization 헤더에 토큰 추가
+      'Authorization': 'Bearer $token',
     },
   );
 
   if (response.statusCode == 200) {
-    // UTF-8 디코딩을 명시적으로 처리
-    String decodedBody = utf8.decode(response.bodyBytes); // bodyBytes 사용
+    String decodedBody = utf8.decode(response.bodyBytes);
     List jsonResponse = json.decode(decodedBody);
     return jsonResponse.map((data) => Comment.fromJson(data)).toList();
   } else {
@@ -70,7 +67,6 @@ Future<void> deleteProduct(String productId, String authToken) async {
   final url = Uri.parse('http://13.125.107.235/api/product/delete/$productId');
 
   try {
-    print('Sending DELETE request to: $url');
     final response = await http.delete(
       url,
       headers: {
@@ -100,7 +96,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   void initState() {
     super.initState();
-    futureProducts = fetchProducts(); // 상품 목록을 가져옴
+    futureProducts = fetchProducts();
   }
 
   @override
@@ -131,143 +127,168 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 String fullImageUrl =
                     'http://13.125.107.235/api/product/image/$imageUrl';
 
-                return Card(
-                  margin: const EdgeInsets.all(10),
-                  elevation: 5,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(10),
-                    leading: imageUrl.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.network(
-                              fullImageUrl,
-                              fit: BoxFit.cover,
-                              width: 60,
-                              height: 60,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image_not_supported),
-                            ),
-                          )
-                        : const Icon(Icons.image_not_supported),
-                    title: Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                return GestureDetector(
+                  onTap: () async {
+                    try {
+                      final comments = await fetchComments(product.id);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductDetailScreen(
+                            product: product,
+                            comments: comments,
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('상품 상세 정보를 불러오는 데 실패했습니다.'),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.3),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    subtitle: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '${product.price}원',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        Text(
-                          '${product.regTime.substring(0, 10)} ',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            // 수정 버튼 클릭 시 수정 화면으로 이동
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductEditScreen(
-                                  productId: product.id,
+                        imageUrl.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: Image.network(
+                                  fullImageUrl,
+                                  fit: BoxFit.cover,
+                                  width: 80,
+                                  height: 80,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.image_not_supported,
+                                          size: 80),
+                                ),
+                              )
+                            : const Icon(Icons.image_not_supported, size: 80),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
                                 ),
                               ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.blue,
-                          ),
-                          child: const Text(
-                            '수정',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: () async {
-                            print('Deleting product with ID: ${product.id}');
-                            final token = await getAuthToken();
-                            if (token == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('로그인이 필요합니다.'),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${product.price}원',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  fontSize: 16,
                                 ),
-                              );
-                              return;
-                            }
-                            try {
-                              await deleteProduct(product.id.toString(), token);
-                              setState(() {
-                                futureProducts = fetchProducts(); // 삭제 후 목록 갱신
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('상품이 삭제되었습니다.'),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                product.regTime.substring(0, 10),
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
                                 ),
-                              );
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('상품 삭제에 실패했습니다. 오류: $e'),
-                                ),
-                              );
-                            }
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.grey,
-                          ),
-                          child: const Text(
-                            '삭제',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ProductEditScreen(
+                                            productId: product.id,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text(
+                                      '수정',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      final token = await getAuthToken();
+                                      if (token == null) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text('로그인이 필요합니다.'),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      try {
+                                        await deleteProduct(
+                                            product.id.toString(), token);
+                                        setState(() {
+                                          futureProducts = fetchProducts();
+                                        });
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text('상품이 삭제되었습니다.'),
+                                          ),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('상품 삭제에 실패했습니다. 오류: $e'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text(
+                                      '삭제',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    onTap: () async {
-                      try {
-                        // 상품 클릭 시 상세 정보 불러오기
-                        final comments = await fetchComments(product.id);
-
-                        // 상세 페이지로 이동
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductDetailScreen(
-                              product: product,
-                              comments: comments, // 댓글을 바로 전달
-                            ),
-                          ),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('상품 상세 정보를 불러오는 데 실패했습니다.'),
-                          ),
-                        );
-                      }
-                    },
                   ),
                 );
               },

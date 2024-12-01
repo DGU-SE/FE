@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:how_much_market/screens/account/login_screen.dart';
 import 'package:how_much_market/screens/account/mycurloc_screen.dart';
-import 'package:how_much_market/screens/product_list/bid_list_screen.dart';
+import 'package:how_much_market/screens/product_list/api_bid_list_screen.dart';
 import 'package:how_much_market/screens/product_list/test_product_delete_screen.dart';
 import 'package:how_much_market/screens/product_list/test_productcommentview_screen.dart';
 import 'package:how_much_market/screens/product_list/my_upload_product_list_screen.dart.dart';
@@ -51,7 +51,7 @@ class MyPageScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const BidListScreen()),
+                      builder: (context) => const ApiBidListScreen()),
                 );
               },
             ),
