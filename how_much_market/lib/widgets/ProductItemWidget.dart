@@ -22,6 +22,7 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   bool isLoading = true;
   String? token; // 토큰을 저장할 변수
   String baseUrl = 'http://13.125.107.235/api/product/image/';
+  bool _isDisposed = false; // To track if the widget is disposed
 
   @override
   void initState() {
@@ -36,11 +37,17 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
     });
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true; // Mark as disposed
+    super.dispose();
+  }
+
   // 토큰을 가져오는 메소드
   Future<void> _fetchToken() async {
     final prefs = await SharedPreferences.getInstance();
     final storedToken = prefs.getString('authToken');
-    if (storedToken != null) {
+    if (storedToken != null && !_isDisposed) {
       setState(() {
         token = storedToken; // 가져온 토큰을 저장
         print('저장된 토큰: $token');
@@ -57,18 +64,22 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
       if (response.statusCode == 200) {
         // UTF-8 디코딩 후 JSON 파싱
         final decodedBody = utf8.decode(response.bodyBytes);
-        setState(() {
-          product = Product.fromJson(json.decode(decodedBody));
-          isLoading = false;
-        });
+        if (!_isDisposed) {
+          setState(() {
+            product = Product.fromJson(json.decode(decodedBody));
+            isLoading = false;
+          });
+        }
       } else {
         throw Exception('Failed to load product');
       }
     } catch (e) {
       print('Error fetching product: $e');
-      setState(() {
-        isLoading = false;
-      });
+      if (!_isDisposed) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -81,14 +92,18 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
     try {
       final fetchedComments = await CommentService.fetchComments(
           widget.productId, token!); // token을 전달
-      setState(() {
-        comments = fetchedComments ?? []; // null 대신 빈 리스트로 처리
-      });
+      if (!_isDisposed) {
+        setState(() {
+          comments = fetchedComments ?? []; // null 대신 빈 리스트로 처리
+        });
+      }
     } catch (e) {
       print('Error fetching comments: $e');
-      setState(() {
-        comments = []; // 에러 발생 시에도 빈 리스트로 설정
-      });
+      if (!_isDisposed) {
+        setState(() {
+          comments = []; // 에러 발생 시에도 빈 리스트로 설정
+        });
+      }
     }
   }
 

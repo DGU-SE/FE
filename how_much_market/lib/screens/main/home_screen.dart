@@ -40,6 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchProducts(); // Refetch products when dependencies change
+  }
+
   // 자동 새로고침을 위한 타이머 설정
   void _startAutoRefresh() {
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
@@ -49,15 +55,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 새로고침을 위한 메서드
   Future<void> _fetchProducts() async {
+    print('Fetching products...'); // Debug: Check if method is called
+
     setState(() {
       _products = productService.searchProducts(
         '', // 기본 검색어
-        33.3, // 위도
-        22.2, // 경도
+        null, // 위도
+        null, // 경도
         0, // 최소 가격
         10000000, // 최대 가격
         'unsold', // 상품 상태
       );
+    });
+
+    // Check the result of Future
+    _products.then((products) {
+      print(
+          'Products fetched: ${products.length}'); // Debug: Verify products count
+    }).catchError((error) {
+      print(
+          'Error fetching products: $error'); // Debug: Check if an error occurs
     });
   }
 
@@ -155,8 +172,21 @@ class _HomeScreenState extends State<HomeScreen> {
         height: screenHeight * 0.1,
         backgroundColor: Theme.of(context).primaryColorLight,
         animationDuration: const Duration(seconds: 1),
-        onDestinationSelected: (index) {
-          if (index != 0) {
+        onDestinationSelected: (index) async {
+          if (index == 2) {
+            // Assuming "ProductRegistrationScreen" is at index 2
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProductRegistrationScreen(),
+              ),
+            );
+
+            // Check if product was successfully registered and refresh the home screen
+            if (result == true) {
+              _fetchProducts(); // Refresh the product list
+            }
+          } else if (index != 0) {
             Navigator.push(
               context,
               MaterialPageRoute(
