@@ -34,8 +34,9 @@ class ProductPurchaseConfirmationScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: Image.network(
                   product.productPictures.isNotEmpty
-                      ? product.productPictures[0]['blobUrl']
-                      : 'assets/no_image.jpg',
+                      ? 'http://13.125.107.235/api/product/image/' +
+                          product.productPictures[0]['blobUrl']
+                      : 'assets/images/no_image.jpg',
                   width: screenWidth * 0.85,
                   height: screenWidth * 0.6,
                   fit: BoxFit.cover,
@@ -191,8 +192,9 @@ class _ProductBidConfirmationScreenState
                 borderRadius: BorderRadius.circular(20),
                 child: Image.network(
                   widget.product.productPictures.isNotEmpty
-                      ? widget.product.productPictures[0]['blobUrl']
-                      : 'assets/no_image.jpg',
+                      ? 'http://13.125.107.235/api/product/image/' +
+                          widget.product.productPictures[0]['blobUrl']
+                      : 'assets/images/no_image.jpg',
                   width: screenWidth * 0.85,
                   height: screenWidth * 0.4,
                   fit: BoxFit.cover,
