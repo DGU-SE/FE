@@ -64,7 +64,8 @@ class MyPageScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const PurchaseListScreen()),
+                      builder: (context) =>
+                          const PurchasedTransactionsScreen()),
                 );
               },
             ),
