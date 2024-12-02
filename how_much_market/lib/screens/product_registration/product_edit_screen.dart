@@ -13,42 +13,29 @@ class ProductEditScreen extends StatefulWidget {
 }
 
 class _ProductEditScreenState extends State<ProductEditScreen> {
-  TextEditingController titleController = TextEditingController();
-  TextEditingController priceController = TextEditingController();
-  TextEditingController descriptionController = TextEditingController();
-  TextEditingController locationController = TextEditingController();
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  String? userId;
 
   @override
   void initState() {
     super.initState();
-    _loadProductDetails();
+    _loadUserId();
   }
 
-  Future<void> _loadProductDetails() async {
-    // Here you can implement the API call to load product details by widget.productId
-    // and initialize the controllers with the fetched data.
-    // For example:
-    // final response = await http.get(Uri.parse('http://13.125.107.235/api/product/${widget.productId}'));
-    // if (response.statusCode == 200) {
-    //   final data = json.decode(response.body);
-    //   setState(() {
-    //     titleController.text = data['name'];
-    //     priceController.text = data['price'].toString();
-    //     descriptionController.text = data['productDetail'];
-    //     locationController.text = data['locationDTO']['address'];
-    //   });
-    // }
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    userId = prefs.getString('userId');
   }
 
   Future<void> updateProduct() async {
     final String apiUrl =
-        'http://13.125.107.235/api/product/${widget.productId}';
+        'http://13.125.107.235/api/product/alter/${widget.productId}';
 
-    if (titleController.text.isEmpty ||
-        priceController.text.isEmpty ||
-        locationController.text.isEmpty) {
+    if (titleController.text.isEmpty || priceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('제목, 가격, 거래 희망 장소를 입력해주세요.')),
+        const SnackBar(content: Text('제목과 가격을 입력해주세요.')),
       );
       return;
     }
@@ -61,12 +48,12 @@ class _ProductEditScreenState extends State<ProductEditScreen> {
         'longitude': 40.00,
         'latitude': 50.00,
         'zipcode': '12345',
-        'address': locationController.text,
+        'address': 'Fixed Address',
         'addressDetail': 'Updated Address Detail',
       },
       'productDetail': descriptionController.text,
-      'onAuction': false,
-      'userId': 'unique-user-id',
+      'onAuction': true,
+      'userId': userId,
     };
 
     try {
@@ -141,17 +128,21 @@ class _ProductEditScreenState extends State<ProductEditScreen> {
               theme: theme,
               maxLines: 4,
             ),
-            _buildTextField(
-              controller: locationController,
-              label: '거래 희망 장소*',
-              hint: '거래 희망 장소를 입력하세요',
-              theme: theme,
-            ),
             const SizedBox(height: 30),
             Center(
-              child: ElevatedButton(
-                onPressed: updateProduct,
-                child: const Text('수정하기'),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue, // 파란색 배경
+                    foregroundColor: Colors.white, // 흰색 글씨
+                    padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  ),
+                  onPressed: updateProduct,
+                  child: const Text('수정하기',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
               ),
             ),
           ],
