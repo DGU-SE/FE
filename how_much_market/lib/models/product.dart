@@ -7,6 +7,7 @@ class Product {
   String locationName;
   final String regTime;
   final String dealTime;
+  final String auctionEndTime;
   final String productStatus;
   final bool onAuction;
   final List<Map<String, dynamic>>
@@ -24,6 +25,7 @@ class Product {
     required this.currentPrice,
     required this.regTime,
     required this.dealTime,
+    required this.auctionEndTime,
     required this.productStatus,
     required this.onAuction,
     required this.productPictures,
@@ -45,6 +47,7 @@ class Product {
       currentPrice: json['currentPrice'],
       regTime: json['regTime'],
       dealTime: json['dealTime'],
+      auctionEndTime: json['auctionEndTime'],
       productStatus: json['productStatus'],
       onAuction: json['onAuction'],
       productPictures: List<Map<String, dynamic>>.from(json['productPictures']),
@@ -63,6 +66,7 @@ class Product {
       'currentPrice': currentPrice,
       'regTime': regTime,
       'dealTime': dealTime,
+      'auctionEndTime': auctionEndTime,
       'productStatus': productStatus,
       'onAuction': onAuction,
       'productPictures': productPictures,

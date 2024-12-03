@@ -271,6 +271,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ],
                     ),
+                  if (widget.product.onAuction)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 2), // 필요한 경우 상하 패딩 조정
+                          child: Text(
+                            '경매 마감 일자',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.045,
+                              color: Colors.grey,
+                              height: 1, // 라인 높이를 1로 설정
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 2), // 필요한 경우 상하 패딩 조정
+                          child: Text(
+                            widget.product.auctionEndTime,
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.045,
+                              color: Theme.of(context).primaryColorDark,
+                              fontWeight: FontWeight.w700,
+                              height: 1, // 라인 높이를 1로 설정
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
                   SizedBox(height: screenHeight * 0.05),
 
