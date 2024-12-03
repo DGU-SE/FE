@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // 로그인 완료 팝업
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인 완료되었습니다 (토큰: $savedToken)')),
+        const SnackBar(content: Text('로그인 완료되었습니다')),
       );
 
       Navigator.of(context).pushAndRemoveUntil(
