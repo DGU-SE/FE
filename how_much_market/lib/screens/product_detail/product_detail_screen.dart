@@ -4,15 +4,17 @@ import 'package:how_much_market/models/product.dart';
 import 'package:how_much_market/screens/product_detail/comment_registration_screen.dart';
 import 'package:how_much_market/screens/product_detail/product_confirmation_screen.dart';
 import 'package:how_much_market/screens/product_detail/reportScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:how_much_market/services/CommnetService.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
-  final List<Comment> comments; // 댓글 리스트 추가
+  final List<Comment> comments;
 
   const ProductDetailScreen({
     super.key,
+    required this.comments,
     required this.product,
-    required this.comments, // 댓글 데이터 받기
   });
 
   @override
@@ -21,7 +23,39 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool isFavorited = false;
+  List<Comment> comments = [];
+  bool isLoadingComments = true;
   String baseUrl = 'http://13.125.107.235/api/product/image/';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchComments(); // Fetch comments when entering the screen
+  }
+
+  Future<void> _fetchComments() async {
+    try {
+      final String? token = await _fetchToken();
+      final fetchedComments = await CommentService.fetchComments(
+        widget.product.id,
+        token ?? '', // Provide a default empty string if token is null
+      );
+      setState(() {
+        comments = fetchedComments;
+        isLoadingComments = false;
+      });
+    } catch (e) {
+      print('Error fetching comments: $e');
+      setState(() {
+        isLoadingComments = false;
+      });
+    }
+  }
+
+  Future<String?> _fetchToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('authToken');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,11 +259,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   SizedBox(height: screenHeight * 0.02),
 
 // 댓글 리스트뷰 생성
-                  widget.comments.isNotEmpty
+                  comments.isNotEmpty
                       ? ListView.builder(
-                          itemCount: widget.comments.length,
+                          itemCount: comments.length,
                           itemBuilder: (context, index) {
-                            final comment = widget.comments[index];
+                            final comment = comments[index];
                             return _buildComment(
                               'assets/images/user_profile.png',
                               comment.userId,

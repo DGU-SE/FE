@@ -98,7 +98,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('상품이 성공적으로 등록되었습니다.')),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       } else {
         // 서버에서 실패 응답 처리
         final errorResponse = json.decode(response.body);

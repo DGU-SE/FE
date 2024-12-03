@@ -150,7 +150,7 @@ class _ProductBidConfirmationScreenState
   // currentPrice를 가져오는 메소드
   Future<void> _fetchCurrentPrice() async {
     try {
-      // 서버에서 currentPrice를 가져오기 위해 API 호출
+      print('Fetching current price for product ID: ${widget.product.id}');
       final response = await http.get(
         Uri.parse(
             'http://13.125.107.235/api/auction/product/${widget.product.id}'),
@@ -158,13 +158,18 @@ class _ProductBidConfirmationScreenState
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+
+        // Convert currentPrice to double
         setState(() {
-          currentPrice = responseData['currentPrice'];
+          currentPrice = (responseData['currentPrice'] as num).toDouble();
+          print('Updated currentPrice: $currentPrice');
         });
       } else {
+        print('Error: HTTP status code ${response.statusCode}');
         _showSnackbar(context, '응답 오류: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error fetching current price: $e');
       _showSnackbar(context, '오류 발생: $e');
     }
   }

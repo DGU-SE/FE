@@ -156,18 +156,40 @@ class ProductService {
     }
   }
 
-  Future<List<Product>> searchProducts(String keyword, double latitude,
-      double longitude, int lowBound, int upBound, String productStatus) async {
-    final response = await http.get(Uri.parse(
-        'http://13.125.107.235/api/product/search?keyword=$keyword&latitude=$latitude&longitude=$longitude&lowBound=$lowBound&upBound=$upBound&productStatus=$productStatus'));
+  Future<List<Product>> searchProducts(
+      String keyword,
+      double? latitude,
+      double? longitude,
+      int lowBound,
+      int upBound,
+      String productStatus) async {
+    // Query Parameter 만들기
+    final queryParams = {
+      'keyword': keyword,
+      if (latitude != null) 'latitude': latitude.toString(),
+      if (longitude != null) 'longitude': longitude.toString(),
+      'lowBound': lowBound.toString(),
+      'upBound': upBound.toString(),
+      'productStatus': productStatus,
+    };
+
+    // URI 생성
+    final uri = Uri.parse('http://13.125.107.235/api/product/search')
+        .replace(queryParameters: queryParams);
+
+    print('Requesting API with URI: $uri'); // Debug: Request URL
+
+    final response = await http.get(uri);
 
     if (response.statusCode == 200) {
-      // 바이트 데이터를 UTF-8로 디코딩
       final decodedBody = utf8.decode(response.bodyBytes);
-      // 디코딩된 데이터를 JSON으로 파싱
       final List<dynamic> data = json.decode(decodedBody);
+      print(
+          'API success: parsed ${data.length} products'); // Debug: Check parsed product count
       return data.map((productData) => Product.fromJson(productData)).toList();
     } else {
+      print(
+          'API error: ${response.statusCode} - ${response.reasonPhrase}'); // Debug: Log API error
       throw Exception('Failed to load products');
     }
   }

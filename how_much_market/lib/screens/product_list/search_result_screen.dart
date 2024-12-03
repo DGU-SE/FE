@@ -34,8 +34,8 @@ class _SearchResultScreenState extends State<SearchResultScreen> {
     // API 요청 시 가격과 상태 필터가 제대로 적용되도록 수정
     _products = productService.searchProducts(
       widget.searchQuery,
-      33.3, // 위도 (예시 값)
-      22.2, // 경도 (예시 값)
+      null, // 위도 (예시 값)
+      null, // 경도 (예시 값)
       int.tryParse(widget.filterMinPrice) ?? 0, // 최소 가격
       int.tryParse(widget.filterMaxPrice) ?? 10000000, // 최대 가격
       widget.filterStatus, // 상품 상태 (unsold, sold 등)
