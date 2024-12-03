@@ -184,8 +184,13 @@ class ProductService {
     if (response.statusCode == 200) {
       final decodedBody = utf8.decode(response.bodyBytes);
       final List<dynamic> data = json.decode(decodedBody);
-      print(
-          'API success: parsed ${data.length} products'); // Debug: Check parsed product count
+
+      print('Response data:');
+      for (var product in data) {
+        print('Product ID: ${product['id']}');
+        print('Distance: ${product['distanceKiloMeter']} km');
+      }
+
       return data.map((productData) => Product.fromJson(productData)).toList();
     } else {
       print(

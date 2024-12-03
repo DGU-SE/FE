@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,20 +15,118 @@ class ProductRegistrationScreen extends StatefulWidget {
 }
 
 class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
-  String saleType = 'auction'; // 기본값: 경매
-  int auctionDuration = 1;
+  String saleType = 'auction';
   DateTime auctionEndTime = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay selectedTime = TimeOfDay.now();
   TextEditingController titleController = TextEditingController();
   TextEditingController priceController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
   TextEditingController locationController = TextEditingController();
-  File? _image; // 사진 파일을 저장할 변수
+  File? _image;
+  Position? _currentPosition;
 
-  // 상품 등록 API 호출
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: auctionEndTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+
+    if (picked != null) {
+      final newDateTime = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+
+      if (newDateTime.isBefore(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('경매 종료 시간은 현재 시간 이후여야 합니다.')),
+        );
+        return;
+      }
+
+      setState(() {
+        auctionEndTime = newDateTime;
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+    );
+
+    if (picked != null) {
+      final newDateTime = DateTime(
+        auctionEndTime.year,
+        auctionEndTime.month,
+        auctionEndTime.day,
+        picked.hour,
+        picked.minute,
+      );
+
+      if (newDateTime.isBefore(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('경매 종료 시간은 현재 시간 이후여야 합니다.')),
+        );
+        return;
+      }
+
+      setState(() {
+        selectedTime = picked;
+        auctionEndTime = newDateTime;
+      });
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 100,
+      );
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
+
+      setState(() {
+        _currentPosition = position;
+      });
+    } catch (e) {
+      print("Error getting location: $e");
+    }
+  }
+
   Future<void> registerProduct() async {
     const String apiUrl = 'http://13.125.107.235/api/product';
 
-    // 입력값 검증
+    if (saleType == 'auction' && auctionEndTime.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('경매 종료 시간을 확인해주세요. 현재 시간 이후로 설정해야 합니다.')),
+      );
+      return;
+    }
+
     if (titleController.text.isEmpty ||
         priceController.text.isEmpty ||
         locationController.text.isEmpty) {
@@ -37,14 +136,20 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       return;
     }
 
-    // 요청 데이터 생성
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('위치 정보를 가져오는 중입니다. 잠시만 기다려주세요.')),
+      );
+      return;
+    }
+
     final Map<String, dynamic> requestData = {
       'name': titleController.text,
       'price': int.parse(priceController.text),
       'dealTime': auctionEndTime.toIso8601String(),
       'locationDTO': {
-        'longitude': 22.22, // 예시 값, 실제로 사용자 입력 또는 위치 정보를 반영하세요
-        'latitude': 33.33, // 예시 값
+        'longitude': _currentPosition!.longitude,
+        'latitude': _currentPosition!.latitude,
         'zipcode': null,
         'address': locationController.text,
         'addressDetail': null,
@@ -53,19 +158,18 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       'onAuction': saleType == 'auction',
     };
 
-    // 경매 데이터 추가
     if (saleType == 'auction') {
       requestData['auctionDTO'] = {
-        'startPrice': int.parse(priceController.text), // 경매 시작 가격
-        'startTime': DateTime.now().toIso8601String(), // 현재 시간을 시작 시간으로 설정
-        'endTime': auctionEndTime.toIso8601String(), // 계산된 경매 종료 시간
+        'startPrice': int.parse(priceController.text),
+        'startTime': DateTime.now().toIso8601String(),
+        'endTime': auctionEndTime.toIso8601String(),
       };
     }
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('authToken'); // 저장된 인증 토큰 가져오기
-      final userId = prefs.getString('userId'); // 사용자 ID 가져오기
+      final token = prefs.getString('authToken');
+      final userId = prefs.getString('userId');
 
       if (token == null) {
         throw Exception('인증 토큰을 찾을 수 없습니다. 다시 로그인해주세요.');
@@ -76,33 +180,34 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
           const SnackBar(content: Text("유저 ID가 없습니다.")),
         );
         return;
-      } else {
-        print("유저아이디 : $userId");
       }
 
-      // 요청 데이터에 userId 추가
       requestData['userId'] = userId;
 
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // 인증 헤더 추가
+          'Authorization': 'Bearer $token',
         },
         body: json.encode(requestData),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // 상품이 등록되면, 이미지 업로드
-        await uploadImage(json.decode(response.body)['id']);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('상품이 성공적으로 등록되었습니다.')),
-        );
-        Navigator.pop(context, true);
-      } else {
-        // 서버에서 실패 응답 처리
-        final errorResponse = json.decode(response.body);
-        throw Exception('상품 등록 실패: ${errorResponse['message'] ?? '알 수 없는 오류'}');
+        try {
+          final productId = json.decode(response.body)['id'];
+          await uploadImage(productId); // 이미지 업로드 완료를 기다림
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('상품이 성공적으로 등록되었습니다.')),
+          );
+          Navigator.pop(context, true);
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('이미지 업로드 실패: $e')),
+          );
+          // 이미지 업로드 실패 시에도 상품은 등록된 상태이므로 화면을 닫음
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,7 +216,6 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
     }
   }
 
-  // 이미지 업로드
   Future<void> uploadImage(int productId) async {
     if (_image == null) {
       return;
@@ -123,25 +227,31 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
       final token = prefs.getString('authToken');
 
       final request = http.MultipartRequest('POST', Uri.parse(apiUrl))
-        ..headers['Authorization'] = 'Bearer $token' // 인증 헤더 추가
+        ..headers['Authorization'] = 'Bearer $token'
         ..files.add(await http.MultipartFile.fromPath(
           'images',
           _image!.path,
         ));
 
-      final response = await request.send();
+      // 응답 처리 수정
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         print('Image uploaded successfully!');
+        print('Response body: ${response.body}');
       } else {
         print('Failed to upload image: ${response.statusCode}');
+        print('Error response: ${response.body}');
+        throw Exception(
+            'Image upload failed with status: ${response.statusCode}');
       }
     } catch (e) {
       print('Error uploading image: $e');
+      throw e; // 에러를 다시 던져서 상위에서 처리할 수 있도록 함
     }
   }
 
-  // 이미지 선택
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? pickedFile =
@@ -177,16 +287,12 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // 제목 입력
             _buildTextField(
               controller: titleController,
               label: '제목*',
               hint: '상품 제목을 입력하세요',
               theme: theme,
             ),
-
-            // 가격 입력
             _buildTextField(
               controller: priceController,
               label: '가격*',
@@ -194,40 +300,51 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               theme: theme,
               keyboardType: TextInputType.number,
             ),
-
-            // 경매 기간 설정
             if (saleType == 'auction')
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
-                  Text('경매 기간', style: theme.textTheme.titleMedium),
-                  DropdownButtonFormField<int>(
-                    value: auctionDuration,
-                    decoration: const InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                    items: [1, 3, 7]
-                        .map((day) => DropdownMenuItem(
-                              value: day,
-                              child: Text('$day일'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          auctionDuration = value;
-                          auctionEndTime = DateTime.now().add(
-                            Duration(days: auctionDuration),
-                          );
-                        });
-                      }
-                    },
+                  Text('경매 종료 시간', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _selectDate(context),
+                          icon: const Icon(Icons.calendar_today),
+                          label: Text(
+                            '${auctionEndTime.year}-${auctionEndTime.month.toString().padLeft(2, '0')}-${auctionEndTime.day.toString().padLeft(2, '0')}',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColorLight,
+                            foregroundColor: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _selectTime(context),
+                          icon: const Icon(Icons.access_time),
+                          label: Text(
+                            '${auctionEndTime.hour.toString().padLeft(2, '0')}:${auctionEndTime.minute.toString().padLeft(2, '0')}',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColorLight,
+                            foregroundColor: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '선택된 종료 시간: ${auctionEndTime.toString()}',
+                    style: theme.textTheme.bodySmall,
                   ),
                 ],
               ),
-
-            // 설명 입력
             _buildTextField(
               controller: descriptionController,
               label: '상품 설명',
@@ -235,23 +352,17 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
               theme: theme,
               maxLines: 4,
             ),
-
-            // 거래 희망 장소
             _buildTextField(
               controller: locationController,
               label: '거래 희망 장소*',
               hint: '거래 희망 장소를 입력하세요',
               theme: theme,
             ),
-
-            // 사진 선택 버튼
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _pickImage,
               child: const Text('사진 선택'),
             ),
-
-            // 선택된 사진 미리보기
             if (_image != null)
               Image.file(
                 _image!,
@@ -259,8 +370,6 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                 height: screenHeight * 0.3,
                 fit: BoxFit.cover,
               ),
-
-            // 등록 버튼
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton(

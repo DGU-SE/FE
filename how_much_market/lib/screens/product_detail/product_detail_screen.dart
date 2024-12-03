@@ -66,6 +66,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     double screenWidth = screenSize.width;
     double screenHeight = screenSize.height;
 
+    print('widget product info');
+    print(widget.product.distanceKiloMeter);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -149,6 +152,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
+                            widget.product.userName,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                          Text(
                             widget.product.locationName,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
@@ -167,7 +174,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isAuction ? '경매중 ' : '판매중 ',
+                        () {
+                          if (isAuction) {
+                            // 경매인 경우
+                            switch (widget.product.productStatus) {
+                              case 'unsold':
+                                return '경매중 ';
+                              case 'no_bids':
+                                return '경매 유찰 ';
+                              case 'auction_ended':
+                                return '경매 종료 (인도 대기) ';
+                              case 'sold':
+                                return '경매 완료 ';
+                              default:
+                                return '';
+                            }
+                          } else {
+                            // 일반 판매인 경우
+                            switch (widget.product.productStatus) {
+                              case 'unsold':
+                                return '판매중 ';
+                              case 'sold':
+                                return '판매 완료 ';
+                              default:
+                                return '';
+                            }
+                          }
+                        }(),
                         style: TextStyle(
                           fontSize: screenWidth * 0.055,
                           fontWeight: FontWeight.w700,
@@ -217,6 +250,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ],
                   ),
+                  if (widget.product.onAuction)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '현재가',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.045,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '${widget.product.currentPrice} 원',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.07,
+                            color: Theme.of(context).primaryColorDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+
                   SizedBox(height: screenHeight * 0.05),
 
                   // 상품 설명
@@ -242,6 +297,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               builder: (context) => CommentRegistrationScreen(
                                 productTitle: widget.product.name,
                                 productId: widget.product.id,
+                                onCommentRegistered: () {
+                                  _fetchComments(); // 댓글이 등록되면 댓글 목록을 다시 불러옴
+                                },
                               ),
                             ),
                           );
@@ -260,19 +318,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
 // 댓글 리스트뷰 생성
                   comments.isNotEmpty
-                      ? ListView.builder(
+                      ? ListView.separated(
+                          // ListView.builder 대신 ListView.separated 사용
                           itemCount: comments.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 16), // 댓글 사이 여백
                           itemBuilder: (context, index) {
                             final comment = comments[index];
                             return _buildComment(
                               'assets/images/user_profile.png',
                               comment.userId,
-                              comment.secret ? '비밀 댓글입니다.' : comment.content,
+                              comment.content,
                             );
                           },
-                          shrinkWrap: true, // ListView 크기 제한
-                          physics:
-                              const NeverScrollableScrollPhysics(), // 내부 스크롤 방지
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
                         )
                       : const Text('댓글이 없습니다.'),
 

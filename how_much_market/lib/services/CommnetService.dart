@@ -40,7 +40,7 @@ class CommentService {
       "productId": productId,
       "userId": userId,
       "content": content,
-      "isSecret": isSecret
+      "secret": isSecret
     };
 
     try {

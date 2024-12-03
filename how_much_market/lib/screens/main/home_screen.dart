@@ -6,6 +6,7 @@ import 'package:how_much_market/screens/main/search_screen.dart';
 import 'package:how_much_market/screens/product_registration/product_registration_screen.dart';
 import 'package:how_much_market/services/ProductService.dart';
 import 'package:how_much_market/widgets/ProductItemWidget.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final ProductService productService = ProductService();
   late Future<List<Product>> _products;
   Timer? _timer; // Timer 객체 선언
+  Position? _currentPosition;
 
   final List<Widget> screens = [
     const SearchScreen(),
@@ -31,7 +33,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchProducts(); // 처음 데이터를 로드
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _getCurrentLocation(); // 먼저 위치 정보를 가져옴
+    _fetchProducts(); // 위치 정보를 가져온 후 상품 조회
   }
 
   @override
@@ -46,6 +53,35 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchProducts(); // Refetch products when dependencies change
   }
 
+  Future<void> _getCurrentLocation() async {
+    try {
+      // 위치 권한 확인
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      // 위치 설정
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 100,
+      );
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
+
+      setState(() {
+        _currentPosition = position;
+      });
+    } catch (e) {
+      print("Error getting location: $e");
+    }
+  }
+
   // 자동 새로고침을 위한 타이머 설정
   void _startAutoRefresh() {
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
@@ -55,16 +91,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 새로고침을 위한 메서드
   Future<void> _fetchProducts() async {
-    print('Fetching products...'); // Debug: Check if method is called
-
     setState(() {
       _products = productService.searchProducts(
         '', // 기본 검색어
-        null, // 위도
-        null, // 경도
+        _currentPosition?.latitude, // 현재 위치의 위도
+        _currentPosition?.longitude, // 현재 위치의 경도
         0, // 최소 가격
         10000000, // 최대 가격
-        'unsold', // 상품 상태
+        '', // 상품 상태
       );
     });
 

@@ -5,11 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart'; // 경로 확인 �
 class CommentRegistrationScreen extends StatefulWidget {
   final String productTitle;
   final int productId; // productId 추가
+  final VoidCallback onCommentRegistered; // 콜백 함수 추가
 
   const CommentRegistrationScreen({
     super.key,
     required this.productTitle,
     required this.productId, // productId 전달
+    required this.onCommentRegistered, // 필수 파라미터로 추가
   });
 
   @override
@@ -39,11 +41,8 @@ class _CommentRegistrationScreenState extends State<CommentRegistrationScreen> {
           const SnackBar(content: Text("유저 ID가 없습니다.")),
         );
         return;
-      } else {
-        print("유저아이디 : $userId");
       }
 
-      // 댓글 등록 API 호출
       await CommentService.registerComment(
         widget.productId,
         userId,
@@ -51,7 +50,8 @@ class _CommentRegistrationScreenState extends State<CommentRegistrationScreen> {
         _isSecret,
       );
 
-      Navigator.pop(context); // 댓글 등록 후 화면을 닫음
+      widget.onCommentRegistered(); // 댓글 등록 성공 후 콜백 실행
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("댓글이 등록되었습니다.")),
       );

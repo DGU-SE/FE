@@ -114,8 +114,14 @@ class MyPageScreen extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pop(context);
-                          // 로그아웃 처리 로직 추가
+                          Navigator.pop(context); // 기존 AlertDialog 닫기
+                          // SharedPreferences 또는 로그아웃 관련 로직 추가
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginScreen()),
+                            (route) => false, // 모든 이전 페이지를 제거
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('로그아웃 되었습니다.')),
                           );

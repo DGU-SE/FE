@@ -63,10 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final savedToken = prefs.getString('authToken');
       print('저장된 토큰: $savedToken');
 
-      // 로그인 완료 팝업
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인 완료되었습니다 (토큰: $savedToken)')),
-      );
+      // // 로그인 완료 팝업
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('로그인 완료되었습니다 (토큰: $savedToken)')),
+      // );
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
