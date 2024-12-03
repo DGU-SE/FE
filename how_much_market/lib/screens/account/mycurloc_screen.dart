@@ -67,7 +67,7 @@ class _MyCurLocScreenState extends State<MyCurLocScreen> {
                   child: Text(
                     '현재 거주지 정보를 확인하세요',
                     style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87),
                     textAlign: TextAlign.center,
