@@ -131,91 +131,105 @@ class _UpdateLocationScreenState extends State<UpdateLocationScreen> {
         title: const Text('거주지 정보 변경'),
         backgroundColor: const Color.fromRGBO(255, 255, 255, 1),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _currentPosition == null
-                ? const Center(child: CircularProgressIndicator())
-                : GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: LatLng(_currentPosition!.latitude,
-                          _currentPosition!.longitude),
-                      zoom: 15,
-                    ),
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                    },
-                    markers: {
-                      Marker(
-                        markerId: const MarkerId('currentLocation'),
-                        position: LatLng(_currentPosition!.latitude,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 2 / 1,
+              child: _currentPosition == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : GoogleMap(
+                      initialCameraPosition: CameraPosition(
+                        target: LatLng(_currentPosition!.latitude,
                             _currentPosition!.longitude),
+                        zoom: 15,
                       ),
-                    },
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _zipcodeController,
-                      decoration: const InputDecoration(
-                        labelText: '새 우편번호',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(
-                        labelText: '주소 (예시:서울시 중구)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _addressDetailController,
-                      decoration: const InputDecoration(
-                        labelText: '상세 주소 (예시:동국대학교 신공학관)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xff3297DF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                      },
+                      markers: {
+                        Marker(
+                          markerId: const MarkerId('currentLocation'),
+                          position: LatLng(_currentPosition!.latitude,
+                              _currentPosition!.longitude),
                         ),
-                      ),
-                      onPressed: _updateLocation,
-                      child: const Text('위치 업데이트'),
+                      },
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.3),
+                      spreadRadius: 2,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _zipcodeController,
+                        decoration: const InputDecoration(
+                          labelText: '새 우편번호',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _addressController,
+                        decoration: const InputDecoration(
+                          labelText: '주소 (예시:서울시 중구)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _addressDetailController,
+                        decoration: const InputDecoration(
+                          labelText: '상세 주소 (예시:동국대학교 신공학관)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff3297DF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: _updateLocation,
+                  child: const Text(
+                    '새로운 거주지로 변경합니다',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
