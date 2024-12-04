@@ -27,11 +27,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<Comment> comments = [];
   bool isLoadingComments = true;
   String baseUrl = 'http://13.125.107.235/api/product/image/';
+  late Product currentProduct;
 
   @override
   void initState() {
     super.initState();
+    currentProduct = widget.product;
     _fetchComments(); // Fetch comments when entering the screen
+  }
+
+  void _navigateToBidScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductBidConfirmationScreen(
+          product: currentProduct,
+          onBidSuccess: (int newPrice) {
+            // int로 받기
+            setState(() {
+              currentProduct = currentProduct.copyWith(
+                currentPrice: newPrice, // 이미 int라서 변환 불필요
+              );
+            });
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _fetchComments() async {
@@ -60,7 +81,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool isAuction = widget.product.onAuction;
+    bool isAuction = currentProduct.onAuction;
 
     // 화면 크기 가져오기
     Size screenSize = MediaQuery.of(context).size;
@@ -264,7 +285,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         Text(
-                          '${widget.product.currentPrice} 원',
+                          '${currentProduct.currentPrice} 원',
                           style: TextStyle(
                             fontSize: screenWidth * 0.07,
                             color: Theme.of(context).primaryColorDark,
@@ -376,41 +397,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        // 경매 완료됐고 입찰자가 있을 경우
                         if (isAuction &&
-                            widget.product.productStatus == "auction_ended") {
+                            currentProduct.productStatus == "auction_ended") {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   ProductPurchaseConfirmationScreen(
-                                      product: widget.product),
+                                      product: currentProduct),
                             ),
                           );
                         } else if (isAuction &&
-                            widget.product.productStatus == "no_bids") {
-                          // 경매가 유찰되었을 때
+                            currentProduct.productStatus == "no_bids") {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('유찰된 상품입니다.')),
                           );
                         } else if (isAuction) {
-                          // 경매 진행중인 경우
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ProductBidConfirmationScreen(
-                                      product: widget.product),
-                            ),
-                          );
+                          _navigateToBidScreen(); // 여기서 메서드 호출
                         } else {
-                          // 상품 구매할 때
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   ProductPurchaseConfirmationScreen(
-                                      product: widget.product),
+                                      product: currentProduct),
                             ),
                           );
                         }
@@ -427,10 +437,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       child: Text(
                         isAuction &&
-                                widget.product.productStatus == "auction_ended"
+                                currentProduct.productStatus == "auction_ended"
                             ? "경매종료"
                             : (isAuction &&
-                                    widget.product.productStatus == "no_bids"
+                                    currentProduct.productStatus == "no_bids"
                                 ? "유찰된 상품"
                                 : (isAuction ? '응찰하기' : '구매하기')),
                         style: const TextStyle(color: Colors.white),

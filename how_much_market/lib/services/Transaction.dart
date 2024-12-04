@@ -23,11 +23,11 @@ class TransactionService {
   }
 
   // 응찰하기
-  Future<void> placeBid(String userId, int productId, double amount) async {
+  Future<void> placeBid(String userId, int productId, int amount) async {
     final Map<String, dynamic> requestBody = {
       'userId': userId,
       'productId': productId,
-      'amount': amount.toInt(), // amount는 정수 형태로 전달
+      'amount': amount,
     };
 
     try {

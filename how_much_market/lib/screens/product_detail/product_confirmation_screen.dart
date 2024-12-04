@@ -122,8 +122,10 @@ class ProductPurchaseConfirmationScreen extends StatelessWidget {
 
 class ProductBidConfirmationScreen extends StatefulWidget {
   final Product product;
+  final Function(int) onBidSuccess;
 
-  const ProductBidConfirmationScreen({super.key, required this.product});
+  const ProductBidConfirmationScreen(
+      {super.key, required this.product, required this.onBidSuccess});
 
   @override
   _ProductBidConfirmationScreenState createState() =>
@@ -295,19 +297,18 @@ class _ProductBidConfirmationScreenState
   }
 
   void _handleBid() async {
-    double bidAmount = double.tryParse(bidController.text) ?? 0.0;
+    int bidAmount = int.tryParse(bidController.text) ?? 0; // double에서 int로 변경
 
-    // 응찰 금액 검증
     if (bidController.text.isEmpty) {
       _showSnackbar(context, '응찰 금액을 입력해주세요.');
       return;
-    } else if (bidAmount <= widget.product.price) {
+    } else if (bidAmount <= widget.product.currentPrice) {
       _showSnackbar(context, '응찰 금액이 현재 최고가보다 높아야 합니다.');
       return;
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('userId'); // 사용자 ID 가져오기
+    final userId = prefs.getString('userId');
 
     if (userId == null) {
       _showSnackbar(context, '로그인이 필요합니다.');
@@ -316,19 +317,16 @@ class _ProductBidConfirmationScreenState
 
     try {
       final transactionService = TransactionService();
-
-      // PlaceBid 호출
       await transactionService.placeBid(
         userId,
         widget.product.id,
-        bidAmount,
+        bidAmount, // 이미 int 타입
       );
 
-      // 성공 처리
+      widget.onBidSuccess(bidAmount); // int 값 전달
       Navigator.pop(context);
       _showSnackbar(context, '응찰하였습니다.');
     } catch (e) {
-      // 실패 처리
       _showSnackbar(context, '응찰 실패: $e');
     }
   }
