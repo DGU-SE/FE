@@ -53,7 +53,7 @@ class ProductPurchaseConfirmationScreen extends StatelessWidget {
             ),
             SizedBox(height: screenHeight * 0.02),
             Text(
-              '${product.price}원',
+              '${product.currentPrice}원',
               style: TextStyle(
                 fontSize: screenWidth * 0.08,
                 fontWeight: FontWeight.w600,

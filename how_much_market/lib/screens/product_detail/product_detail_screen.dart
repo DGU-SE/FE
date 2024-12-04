@@ -6,6 +6,7 @@ import 'package:how_much_market/screens/product_detail/product_confirmation_scre
 import 'package:how_much_market/screens/product_detail/reportScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:how_much_market/services/CommnetService.dart';
+import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -160,7 +161,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           Text(
-                            '거리: ${widget.product.distanceKiloMeter} km',
+                            '거리: ${widget.product.distanceKiloMeter.toStringAsFixed(3)} km',
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                         ],
@@ -221,7 +222,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ],
                   ),
                   Text(
-                    widget.product.regTime,
+                    DateFormat('yyyy년 MM월 d일 HH시 mm분 ss초')
+                        .format(DateTime.parse(widget.product.regTime)),
                     style: TextStyle(
                       fontSize: screenWidth * 0.04,
                       color: Colors.grey,
@@ -292,12 +294,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           padding: EdgeInsets.symmetric(
                               vertical: 2), // 필요한 경우 상하 패딩 조정
                           child: Text(
-                            widget.product.auctionEndTime,
+                            DateFormat('yyyy년 MM월 d일 HH시 mm분 ss초').format(
+                                DateTime.parse(widget.product.auctionEndTime)),
                             style: TextStyle(
-                              fontSize: screenWidth * 0.045,
+                              fontSize: screenWidth * 0.03,
                               color: Theme.of(context).primaryColorDark,
-                              fontWeight: FontWeight.w700,
-                              height: 1, // 라인 높이를 1로 설정
+                              fontWeight: FontWeight.w600,
+                              height: 1,
                             ),
                           ),
                         ),
@@ -359,7 +362,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             final comment = comments[index];
                             return _buildComment(
                               'assets/images/user_profile.png',
-                              comment.userId,
+                              comment.userName,
                               comment.content,
                             );
                           },
@@ -373,7 +376,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        if (isAuction) {
+                        // 경매 완료됐고 입찰자가 있을 경우
+                        if (isAuction &&
+                            widget.product.productStatus == "auction_ended") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProductPurchaseConfirmationScreen(
+                                      product: widget.product),
+                            ),
+                          );
+                        } else if (isAuction &&
+                            widget.product.productStatus == "no_bids") {
+                          // 경매가 유찰되었을 때
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('유찰된 상품입니다.')),
+                          );
+                        } else if (isAuction) {
+                          // 경매 진행중인 경우
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -383,6 +404,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                           );
                         } else {
+                          // 상품 구매할 때
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -404,7 +426,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       child: Text(
-                        isAuction ? '응찰하기' : '구매하기',
+                        isAuction &&
+                                widget.product.productStatus == "auction_ended"
+                            ? "경매종료"
+                            : (isAuction &&
+                                    widget.product.productStatus == "no_bids"
+                                ? "유찰된 상품"
+                                : (isAuction ? '응찰하기' : '구매하기')),
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
