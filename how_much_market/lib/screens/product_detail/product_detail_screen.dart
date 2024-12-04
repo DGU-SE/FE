@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:how_much_market/models/comment.dart';
+import 'package:how_much_market/models/product.dart';
 import 'package:how_much_market/screens/product_detail/comment_registration_screen.dart';
 import 'package:how_much_market/screens/product_detail/product_confirmation_screen.dart';
+import 'package:how_much_market/screens/product_detail/reportScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:how_much_market/services/CommnetService.dart';
+import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> product;
+  final Product product;
+  final List<Comment> comments;
 
-  const ProductDetailScreen({super.key, required this.product});
+  const ProductDetailScreen({
+    super.key,
+    required this.comments,
+    required this.product,
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -13,15 +24,72 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool isFavorited = false;
+  List<Comment> comments = [];
+  bool isLoadingComments = true;
+  String baseUrl = 'http://13.125.107.235/api/product/image/';
+  late Product currentProduct;
+
+  @override
+  void initState() {
+    super.initState();
+    currentProduct = widget.product;
+    _fetchComments(); // Fetch comments when entering the screen
+  }
+
+  void _navigateToBidScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductBidConfirmationScreen(
+          product: currentProduct,
+          onBidSuccess: (int newPrice) {
+            // int로 받기
+            setState(() {
+              currentProduct = currentProduct.copyWith(
+                currentPrice: newPrice, // 이미 int라서 변환 불필요
+              );
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _fetchComments() async {
+    try {
+      final String? token = await _fetchToken();
+      final fetchedComments = await CommentService.fetchComments(
+        widget.product.id,
+        token ?? '', // Provide a default empty string if token is null
+      );
+      setState(() {
+        comments = fetchedComments;
+        isLoadingComments = false;
+      });
+    } catch (e) {
+      print('Error fetching comments: $e');
+      setState(() {
+        isLoadingComments = false;
+      });
+    }
+  }
+
+  Future<String?> _fetchToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('authToken');
+  }
 
   @override
   Widget build(BuildContext context) {
-    bool isAuction = widget.product['saleType'] == 'auction';
+    bool isAuction = currentProduct.onAuction;
 
     // 화면 크기 가져오기
     Size screenSize = MediaQuery.of(context).size;
     double screenWidth = screenSize.width;
     double screenHeight = screenSize.height;
+
+    print('widget product info');
+    print(widget.product.distanceKiloMeter);
 
     return Scaffold(
       body: CustomScrollView(
@@ -32,25 +100,53 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             flexibleSpace: Stack(
               children: [
                 FlexibleSpaceBar(
-                  background: Image.asset(
-                    widget.product['imageUrl'],
+                  background: Image.network(
+                    widget.product.productPictures.isNotEmpty
+                        ? baseUrl + widget.product.productPictures[0]['blobUrl']
+                        : 'assets/images/no_image.jpg', // 기본 이미지
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // 이미지 로딩 실패 시 기본 이미지 표시
+                      return Image.asset('assets/images/no_image.jpg',
+                          fit: BoxFit.cover);
+                    },
                   ),
                 ),
                 Positioned(
                   right: 16,
                   top: 16,
-                  child: IconButton(
-                    icon: Icon(
-                      isFavorited ? Icons.favorite : Icons.favorite_border,
-                      color: const Color.fromARGB(230, 255, 128, 128),
-                      size: 28,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isFavorited = !isFavorited;
-                      });
-                    },
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.report_gmailerrorred_outlined,
+                          color: Colors.redAccent,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ReportScreen(
+                                      postTitle: widget.product.name,
+                                      productId: widget.product.id,
+                                    )),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          isFavorited ? Icons.favorite : Icons.favorite_border,
+                          color: const Color.fromARGB(230, 255, 128, 128),
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            isFavorited = !isFavorited;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -78,11 +174,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.product['userName'] ?? '사용자 이름',
+                            widget.product.userName,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                          Text(
+                            widget.product.locationName,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           Text(
-                            widget.product['userLocation'] ?? '위치 정보 없음',
+                            '거리: ${widget.product.distanceKiloMeter.toStringAsFixed(3)} km',
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                         ],
@@ -96,7 +196,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isAuction ? '경매중 ' : '판매중 ',
+                        () {
+                          if (isAuction) {
+                            // 경매인 경우
+                            switch (widget.product.productStatus) {
+                              case 'unsold':
+                                return '경매중 ';
+                              case 'no_bids':
+                                return '경매 유찰 ';
+                              case 'auction_ended':
+                                return '경매 종료 (인도 대기) ';
+                              case 'sold':
+                                return '경매 완료 ';
+                              default:
+                                return '';
+                            }
+                          } else {
+                            // 일반 판매인 경우
+                            switch (widget.product.productStatus) {
+                              case 'unsold':
+                                return '판매중 ';
+                              case 'sold':
+                                return '판매 완료 ';
+                              default:
+                                return '';
+                            }
+                          }
+                        }(),
                         style: TextStyle(
                           fontSize: screenWidth * 0.055,
                           fontWeight: FontWeight.w700,
@@ -105,20 +231,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       Flexible(
                         child: Text(
-                          widget.product['title'],
+                          widget.product.name,
                           style: TextStyle(
                             fontSize: screenWidth * 0.055,
                             fontWeight: FontWeight.w600,
                           ),
-                          maxLines: 2, // 최대 줄 수를 2줄로 제한
-                          overflow:
-                              TextOverflow.ellipsis, // 글자가 너무 길면 "..."로 생략
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                   Text(
-                    "10분 전", // 상품이 올라온 시간
+                    DateFormat('yyyy년 MM월 d일 HH시 mm분 ss초')
+                        .format(DateTime.parse(widget.product.regTime)),
                     style: TextStyle(
                       fontSize: screenWidth * 0.04,
                       color: Colors.grey,
@@ -126,102 +252,88 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   SizedBox(height: screenHeight * 0.03),
 
-                  // 상품 가격 (숫자 강조)
+                  // 상품 가격
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (isAuction) ...[
-                            Text(
-                              '경매 시작가',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.045,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            SizedBox(
-                              height: screenHeight * 0.02,
-                            ),
-                            Text(
-                              '현재 최고가',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.05,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ] else ...[
-                            Text(
-                              '가격',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.05,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ],
+                      Text(
+                        isAuction ? '경매 시작가' : '가격',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.045,
+                          color: Colors.grey,
+                        ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (isAuction) ...[
-                            Text(
-                              widget.product['auctionStartPrice'], // 경매 시작가 값
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.06,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            SizedBox(
-                              height: screenHeight * 0.01,
-                            ),
-                            Text(
-                              widget.product['highestBid'], // 현재 최고가 값
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.07,
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ] else ...[
-                            Text(
-                              widget.product['price'], // 가격 값
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.07,
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ],
+                      Text(
+                        '${widget.product.price} 원',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.07,
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
+                  if (widget.product.onAuction)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '현재가',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.045,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '${currentProduct.currentPrice} 원',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.07,
+                            color: Theme.of(context).primaryColorDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (widget.product.onAuction)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 2), // 필요한 경우 상하 패딩 조정
+                          child: Text(
+                            '경매 마감 일자',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.045,
+                              color: Colors.grey,
+                              height: 1, // 라인 높이를 1로 설정
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 2), // 필요한 경우 상하 패딩 조정
+                          child: Text(
+                            DateFormat('yyyy년 MM월 d일 HH시 mm분 ss초').format(
+                                DateTime.parse(widget.product.auctionEndTime)),
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.03,
+                              color: Theme.of(context).primaryColorDark,
+                              fontWeight: FontWeight.w600,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
                   SizedBox(height: screenHeight * 0.05),
 
                   // 상품 설명
                   Text(
-                    widget.product['description'] ?? '상품 설명이 없습니다.',
+                    widget.product.productDetail,
                     style: TextStyle(fontSize: screenWidth * 0.045),
-                  ),
-                  SizedBox(height: screenHeight * 0.06),
-
-                  // 거래 희망 장소
-                  Text(
-                    '거래 희망 장소:',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  SizedBox(height: screenHeight * 0.01),
-                  Container(
-                    height: screenHeight * 0.3,
-                    color: Theme.of(context).cardColor,
-                    child: Center(
-                      child: Text(
-                        '지도 위치 (곧 업데이트 예정)',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ),
                   ),
                   SizedBox(height: screenHeight * 0.06),
 
@@ -238,10 +350,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => CommentRegistrationScreen(
-                                      productTitle:
-                                          "${widget.product['title']}",
-                                    )),
+                              builder: (context) => CommentRegistrationScreen(
+                                productTitle: widget.product.name,
+                                productId: widget.product.id,
+                                onCommentRegistered: () {
+                                  _fetchComments(); // 댓글이 등록되면 댓글 목록을 다시 불러옴
+                                },
+                              ),
+                            ),
                           );
                         },
                         child: Text(
@@ -255,35 +371,56 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ],
                   ),
                   SizedBox(height: screenHeight * 0.02),
-                  _buildComment(
-                      'assets/images/user_profile.png', '사용자1', '좋은 상품이네요!'),
-                  SizedBox(height: screenHeight * 0.015),
-                  _buildComment(
-                      'assets/images/user_profile.png', '사용자2', '가격이 마음에 들어요!'),
+
+// 댓글 리스트뷰 생성
+                  comments.isNotEmpty
+                      ? ListView.separated(
+                          // ListView.builder 대신 ListView.separated 사용
+                          itemCount: comments.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 16), // 댓글 사이 여백
+                          itemBuilder: (context, index) {
+                            final comment = comments[index];
+                            return _buildComment(
+                              'assets/images/user_profile.png',
+                              comment.userName,
+                              comment.content,
+                            );
+                          },
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                        )
+                      : const Text('댓글이 없습니다.'),
 
                   SizedBox(height: screenHeight * 0.1),
-
                   // 응찰하기 or 구매하기 버튼
                   Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        // isAuction에 따라 다른 화면으로 이동
-                        if (isAuction) {
+                        if (isAuction &&
+                            currentProduct.productStatus == "auction_ended") {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  ProductBidConfirmationScreen(
-                                      product: widget.product),
+                                  ProductPurchaseConfirmationScreen(
+                                      product: currentProduct),
                             ),
                           );
+                        } else if (isAuction &&
+                            currentProduct.productStatus == "no_bids") {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('유찰된 상품입니다.')),
+                          );
+                        } else if (isAuction) {
+                          _navigateToBidScreen(); // 여기서 메서드 호출
                         } else {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   ProductPurchaseConfirmationScreen(
-                                      product: widget.product),
+                                      product: currentProduct),
                             ),
                           );
                         }
@@ -299,7 +436,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       child: Text(
-                        isAuction ? '응찰하기' : '구매하기',
+                        isAuction &&
+                                currentProduct.productStatus == "auction_ended"
+                            ? "경매종료"
+                            : (isAuction &&
+                                    currentProduct.productStatus == "no_bids"
+                                ? "유찰된 상품"
+                                : (isAuction ? '응찰하기' : '구매하기')),
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
@@ -323,19 +466,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           backgroundImage: AssetImage(imageUrl),
         ),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              username,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              comment,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ],
+        Expanded(
+          // 텍스트를 Expanded로 감싸기
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                username,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                comment,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ],
+          ),
         ),
       ],
     );

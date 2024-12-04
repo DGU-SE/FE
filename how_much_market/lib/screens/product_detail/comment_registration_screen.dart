@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:how_much_market/services/CommnetService.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 경로 확인 필요
 
 class CommentRegistrationScreen extends StatefulWidget {
   final String productTitle;
+  final int productId; // productId 추가
+  final VoidCallback onCommentRegistered; // 콜백 함수 추가
 
-  const CommentRegistrationScreen({super.key, required this.productTitle});
+  const CommentRegistrationScreen({
+    super.key,
+    required this.productTitle,
+    required this.productId, // productId 전달
+    required this.onCommentRegistered, // 필수 파라미터로 추가
+  });
 
   @override
   _CommentRegistrationScreenState createState() =>
@@ -14,15 +23,41 @@ class _CommentRegistrationScreenState extends State<CommentRegistrationScreen> {
   final TextEditingController _commentController = TextEditingController();
   bool _isSecret = false;
 
-  void _registerComment() {
+  // 댓글 등록 API 호출
+  Future<void> _registerComment() async {
     if (_commentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("댓글 내용을 입력해주세요.")),
       );
-    } else {
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("유저 ID가 없습니다.")),
+        );
+        return;
+      }
+
+      await CommentService.registerComment(
+        widget.productId,
+        userId,
+        _commentController.text,
+        _isSecret,
+      );
+
+      widget.onCommentRegistered(); // 댓글 등록 성공 후 콜백 실행
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("댓글이 등록되었습니다.")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("댓글 등록 실패: $e")),
       );
     }
   }

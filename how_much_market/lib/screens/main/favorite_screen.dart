@@ -1,18 +1,8 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:how_much_market/widgets/ProductItemWidget.dart';
 
-class FavoriteScreen extends StatefulWidget {
+class FavoriteScreen extends StatelessWidget {
   const FavoriteScreen({super.key});
-
-  @override
-  State<FavoriteScreen> createState() => _FavoriteScreenState();
-}
-
-class _FavoriteScreenState extends State<FavoriteScreen> {
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +11,19 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     double screenHeight = screenSize.height;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('FavoriteScreen'),
-      ),
-      body: const Column(children: [
-        Text('템플릿'),
-      ]),
-    );
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        appBar: AppBar(
+          title: const Text('찜한 상품'),
+        ),
+        body: ListView.builder(
+          padding: EdgeInsets.symmetric(
+            vertical: screenHeight * 0.02,
+            horizontal: screenWidth * 0.05,
+          ),
+          itemCount: 1,
+          itemBuilder: (context, index) {
+            return const ProductItemWidget(productId: 1);
+          },
+        ));
   }
 }

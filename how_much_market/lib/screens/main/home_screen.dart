@@ -1,10 +1,13 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:how_much_market/models/product.dart';
 import 'package:how_much_market/screens/main/favorite_screen.dart';
 import 'package:how_much_market/screens/main/mypage_screen.dart';
 import 'package:how_much_market/screens/main/search_screen.dart';
 import 'package:how_much_market/screens/product_registration/product_registration_screen.dart';
+import 'package:how_much_market/services/ProductService.dart';
 import 'package:how_much_market/widgets/ProductItemWidget.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,57 +17,100 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Widget> screens;
+  final ProductService productService = ProductService();
+  late Future<List<Product>> _products;
+  Timer? _timer; // Timer 객체 선언
+  Position? _currentPosition;
 
-  _HomeScreenState()
-      : screens = [
-          const SearchScreen(),
-          const SearchScreen(),
-          const ProductRegistrationScreen(),
-          const FavoriteScreen(),
-          const MypageScreen(),
-        ];
-
-  final List<Map<String, dynamic>> productData = [
-    {
-      'imageUrl': 'assets/images/no_image.jpg',
-      'title': '아이폰 6 Pro 판매합니다.',
-      'distance': '500m',
-      'timeAgo': '10분 전',
-      'auctionStartPrice': "0원",
-      'highestBid': "0원",
-      'price': '200,000 원',
-      'saleType': '즉시판매', // 판매 방식 추가
-      'userName': '홍길동', // 사용자 이름 추가
-      'userLocation': '서울시 강남구', // 사용자 위치 추가
-    },
-    {
-      'imageUrl': 'assets/images/no_image.jpg',
-      'title': '아이폰 7 Pro 경매합니다.',
-      'distance': '600m',
-      'timeAgo': '20분 전',
-      'auctionStartPrice': "100,000원",
-      'highestBid': "150,000원",
-      'price': '300,000 원',
-      'saleType': 'auction',
-      'userName': '이순신',
-      'userLocation': '서울시 종로구',
-    },
-    {
-      'imageUrl': 'assets/images/no_image.jpg',
-      'title': '아이폰 8 Pro 경매합니다아아아아아아아아아아아아아아아.',
-      'distance': '700m',
-      'timeAgo': '30분 전',
-      'auctionStartPrice': "2,000원",
-      'highestBid': "500,000원",
-      'price': '400,000 원',
-      'saleType': 'auction',
-      'userName': '장보고',
-      'userLocation': '부산시 해운대구',
-    },
+  final List<Widget> screens = [
+    const SearchScreen(),
+    const SearchScreen(),
+    const ProductRegistrationScreen(),
+    const FavoriteScreen(),
+    const MyPageScreen(),
   ];
 
-  int selectedIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _getCurrentLocation(); // 먼저 위치 정보를 가져옴
+    _fetchProducts(); // 위치 정보를 가져온 후 상품 조회
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Timer 해제
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchProducts(); // Refetch products when dependencies change
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      // 위치 권한 확인
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      // 위치 설정
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 100,
+      );
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
+
+      setState(() {
+        _currentPosition = position;
+      });
+    } catch (e) {
+      print("Error getting location: $e");
+    }
+  }
+
+  // 자동 새로고침을 위한 타이머 설정
+  void _startAutoRefresh() {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _fetchProducts(); // 10초마다 데이터 새로고침
+    });
+  }
+
+  // 새로고침을 위한 메서드
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _products = productService.searchProducts(
+        '', // 기본 검색어
+        _currentPosition?.latitude, // 현재 위치의 위도
+        _currentPosition?.longitude, // 현재 위치의 경도
+        0, // 최소 가격
+        10000000, // 최대 가격
+        '', // 상품 상태
+      );
+    });
+
+    // Check the result of Future
+    _products.then((products) {
+      print(
+          'Products fetched: ${products.length}'); // Debug: Verify products count
+    }).catchError((error) {
+      print(
+          'Error fetching products: $error'); // Debug: Check if an error occurs
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,9 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Center(
               child: Row(
                 children: [
-                  SizedBox(
-                    width: screenWidth * 0.07,
-                  ),
+                  SizedBox(width: screenWidth * 0.07),
                   SizedBox(
                     width: screenWidth * 0.63,
                     child: Text(
@@ -103,18 +147,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const SearchScreen()),
+                              builder: (context) => const SearchScreen(),
+                            ),
                           );
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.notifications),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const SearchScreen()),
-                          );
+                          _fetchProducts();
                         },
                       ),
                     ],
@@ -124,57 +165,39 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const Divider(color: Color.fromARGB(255, 242, 242, 242)),
-
-          // 3가지 라디오 버튼 추가
-          SizedBox(
-            height: screenHeight * 0.05,
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 20.0), // Row 시작 시 간격 추가
-                  child: _buildRadioButton(0),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      left: 8.0), // 첫 번째 버튼과 두 번째 버튼 사이 간격 추가
-                  child: _buildRadioButton(1),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                      left: 8.0), // 두 번째 버튼과 세 번째 버튼 사이 간격 추가
-                  child: _buildRadioButton(2),
-                ),
-              ],
-            ),
-          ),
-
           const Divider(color: Color.fromARGB(255, 240, 240, 240)),
-          Expanded(
-            child: ListView.builder(
-              itemCount: productData.length,
-              itemBuilder: (context, index) {
-                var product = productData[index];
 
-                return Column(
-                  children: [
-                    ProductItemWidget(
-                      imageUrl: product['imageUrl'],
-                      title: product['title'],
-                      distance: product['distance'],
-                      timeAgo: product['timeAgo'],
-                      auctionStartPrice: product['auctionStartPrice'],
-                      highestBid: product['highestBid'],
-                      price: product['price'],
-                      saleType: product['saleType'],
-                      userName: product['userName'],
-                      userLocation: product['userLocation'],
-                      description: "제품설명입니다.\n가나다가나다가나다\nABC\n1234567890",
-                      auctionEndTime: "2024-11-12",
-                    ),
-                    const Divider(color: Color.fromARGB(255, 235, 235, 235)),
-                  ],
-                );
-              },
+          // 새로고침 기능을 추가한 부분
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchProducts, // 새로고침 시 호출될 함수
+              child: FutureBuilder<List<Product>>(
+                future: _products,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('오류 발생: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('상품이 없습니다.'));
+                  }
+
+                  final products = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return Column(
+                        children: [
+                          ProductItemWidget(productId: product.id),
+                          const Divider(
+                              color: Color.fromARGB(255, 235, 235, 235)),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -183,8 +206,21 @@ class _HomeScreenState extends State<HomeScreen> {
         height: screenHeight * 0.1,
         backgroundColor: Theme.of(context).primaryColorLight,
         animationDuration: const Duration(seconds: 1),
-        onDestinationSelected: (index) {
-          if (index != 0) {
+        onDestinationSelected: (index) async {
+          if (index == 2) {
+            // Assuming "ProductRegistrationScreen" is at index 2
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProductRegistrationScreen(),
+              ),
+            );
+
+            // Check if product was successfully registered and refresh the home screen
+            if (result == true) {
+              _fetchProducts(); // Refresh the product list
+            }
+          } else if (index != 0) {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -194,67 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
         destinations: _navBarItems,
-        indicatorColor: Theme.of(context).primaryColorLight,
-      ),
-    );
-  }
-
-  // 라디오 버튼 빌드 메서드
-  Widget _buildRadioButton(int index) {
-    bool isSelected = index == selectedIndex;
-    List<String> buttonLabels = ['전체보기', '경매', '즉시구매'];
-    List<IconData> buttonIcons = [
-      Icons.view_list, // 전체보기
-      Icons.access_time, // 경매
-      Icons.shopping_cart, // 즉시구매
-    ];
-
-    // 텍스트 크기 설정
-    TextStyle textStyle;
-    if (index == 1) {
-      // 두 번째 버튼 (경매) 텍스트 크기 키움
-      textStyle = TextStyle(
-        color: isSelected ? Colors.white : Colors.black,
-        fontSize: 15, // 크기 증가
-      );
-    } else {
-      // 첫 번째와 세 번째 버튼 텍스트 크기 줄임
-      textStyle = TextStyle(
-        color: isSelected ? Colors.white : Colors.black,
-        fontSize: 10, // 크기 감소
-      );
-    }
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedIndex = index;
-        });
-      },
-      child: Container(
-        width: 80,
-        height: 35, // 버튼 크기
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.white,
-          borderRadius: BorderRadius.circular(30.0),
-          border: Border.all(color: Colors.grey),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start, // 왼쪽 정렬
-          children: [
-            Icon(
-              buttonIcons[index],
-              size: 18, // 아이콘 크기 줄임
-              color: isSelected ? Colors.white : Colors.black,
-            ),
-            const SizedBox(width: 4.0),
-            Text(
-              buttonLabels[index],
-              style: textStyle, // 텍스트 스타일 적용
-            ),
-          ],
-        ),
+        surfaceTintColor: Theme.of(context).primaryColorLight,
       ),
     );
   }

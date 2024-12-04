@@ -1,13 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:how_much_market/models/product.dart';
+import 'package:how_much_market/services/Transaction.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 경로 확인 필요
+import 'package:http/http.dart' as http; // http 요청을 위한 패키지 추가
 
 class ProductPurchaseConfirmationScreen extends StatelessWidget {
-  final Map<String, dynamic> product;
+  final Product product;
 
   const ProductPurchaseConfirmationScreen({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
-    // 화면 크기 가져오기
     Size screenSize = MediaQuery.of(context).size;
     double screenWidth = screenSize.width;
     double screenHeight = screenSize.height;
@@ -26,19 +31,21 @@ class ProductPurchaseConfirmationScreen extends StatelessWidget {
           children: [
             Center(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20), // 모서리 둥글게 설정
-                child: Image.asset(
-                  product['imageUrl'], // 상품 이미지 URL
-                  width: screenWidth * 0.85, // 큰 이미지 크기
-                  height: screenWidth * 0.4, // 큰 이미지 크기
-                  fit: BoxFit.cover, // 이미지 비율 유지
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  product.productPictures.isNotEmpty
+                      ? 'http://13.125.107.235/api/product/image/' +
+                          product.productPictures[0]['blobUrl']
+                      : 'assets/images/no_image.jpg',
+                  width: screenWidth * 0.85,
+                  height: screenWidth * 0.6,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
-            SizedBox(height: screenHeight * 0.03),
-            // 상품 정보
+            SizedBox(height: screenHeight * 0.04),
             Text(
-              product['title'],
+              product.name,
               style: TextStyle(
                 fontSize: screenWidth * 0.06,
                 fontWeight: FontWeight.w700,
@@ -46,74 +53,140 @@ class ProductPurchaseConfirmationScreen extends StatelessWidget {
             ),
             SizedBox(height: screenHeight * 0.02),
             Text(
-              '가격: ${product['price']}',
+              '${product.currentPrice}원',
               style: TextStyle(
-                fontSize: screenWidth * 0.05,
+                fontSize: screenWidth * 0.08,
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).primaryColor,
               ),
             ),
-            SizedBox(height: screenHeight * 0.1),
-
-            // 구매 정보 안내
+            const Spacer(),
             Text(
               '해당 상품을 구매하시겠습니까?',
               style: TextStyle(
                 fontSize: screenWidth * 0.05,
+                fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
             ),
-            SizedBox(height: screenHeight * 0.04),
-
-            // 구매하기 버튼
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  // 구매 기능 처리
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.3,
-                    vertical: screenHeight * 0.015,
-                  ),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  '구매하기',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
+            SizedBox(height: screenHeight * 0.02),
           ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.1,
+          vertical: screenHeight * 0.02,
+        ),
+        child: ElevatedButton(
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            final token = prefs.getString('authToken'); // 로그인된 사용자 토큰
+            if (token == null) {
+              _showSnackbar(context, '로그인이 필요합니다.');
+              return;
+            }
+
+            try {
+              final transactionService = TransactionService();
+              await transactionService.purchaseProduct(product.id, token);
+              Navigator.pop(context);
+              _showSnackbar(context, '구매 요청을 보냈습니다.');
+            } catch (e) {
+              _showSnackbar(context, '구매 요청 실패: $e');
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(
+              vertical: screenHeight * 0.015,
+            ),
+            backgroundColor: Theme.of(context).primaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: const Text(
+            '구매하기',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ),
     );
   }
+
+  void _showSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
-class ProductBidConfirmationScreen extends StatelessWidget {
-  final Map<String, dynamic> product;
+class ProductBidConfirmationScreen extends StatefulWidget {
+  final Product product;
+  final Function(int) onBidSuccess;
 
-  const ProductBidConfirmationScreen({super.key, required this.product});
+  const ProductBidConfirmationScreen(
+      {super.key, required this.product, required this.onBidSuccess});
+
+  @override
+  _ProductBidConfirmationScreenState createState() =>
+      _ProductBidConfirmationScreenState();
+}
+
+class _ProductBidConfirmationScreenState
+    extends State<ProductBidConfirmationScreen> {
+  final TextEditingController bidController = TextEditingController();
+  double? currentPrice;
+
+  @override
+  void dispose() {
+    bidController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentPrice();
+  }
+
+  // currentPrice를 가져오는 메소드
+  Future<void> _fetchCurrentPrice() async {
+    try {
+      print('Fetching current price for product ID: ${widget.product.id}');
+      final response = await http.get(
+        Uri.parse(
+            'http://13.125.107.235/api/auction/product/${widget.product.id}'),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        // Convert currentPrice to double
+        setState(() {
+          currentPrice = (responseData['currentPrice'] as num).toDouble();
+          print('Updated currentPrice: $currentPrice');
+        });
+      } else {
+        print('Error: HTTP status code ${response.statusCode}');
+        _showSnackbar(context, '응답 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching current price: $e');
+      _showSnackbar(context, '오류 발생: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 화면 크기 가져오기
     Size screenSize = MediaQuery.of(context).size;
     double screenWidth = screenSize.width;
     double screenHeight = screenSize.height;
-
-    TextEditingController bidController = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('응찰 확인'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.05,
           vertical: screenHeight * 0.02,
@@ -123,123 +196,143 @@ class ProductBidConfirmationScreen extends StatelessWidget {
           children: [
             Center(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20), // 모서리 둥글게 설정
-                child: Image.asset(
-                  product['imageUrl'], // 상품 이미지 URL
-                  width: screenWidth * 0.85, // 큰 이미지 크기
-                  height: screenWidth * 0.4, // 큰 이미지 크기
-                  fit: BoxFit.cover, // 이미지 비율 유지
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  widget.product.productPictures.isNotEmpty
+                      ? 'http://13.125.107.235/api/product/image/' +
+                          widget.product.productPictures[0]['blobUrl']
+                      : 'assets/images/no_image.jpg',
+                  width: screenWidth * 0.85,
+                  height: screenWidth * 0.4,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
             SizedBox(height: screenHeight * 0.03),
-            // 상품 정보
             Text(
-              product['title'],
+              widget.product.name,
               style: TextStyle(
                 fontSize: screenWidth * 0.06,
                 fontWeight: FontWeight.w700,
               ),
             ),
             SizedBox(height: screenHeight * 0.02),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '경매 시작가',
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.04,
-                    color: Colors.grey,
-                  ),
-                ),
-                Text(
-                  product['auctionStartPrice'],
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.05,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: screenHeight * 0.01),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '현재 최고가',
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.05,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  product['highestBid'],
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.07,
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: screenHeight * 0.1),
-
-            // 응찰 입력 필드
             Text(
               '응찰 금액을 입력하세요:',
               style: TextStyle(
-                fontSize: screenWidth * 0.05,
+                fontSize: screenWidth * 0.045,
                 color: Colors.black87,
               ),
             ),
-            SizedBox(height: screenHeight * 0.02),
+            SizedBox(height: screenHeight * 0.01),
             TextField(
               controller: bidController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: '응찰 금액',
-                border: const OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.05,
-                  vertical: screenHeight * 0.02,
-                ),
+                border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
-            SizedBox(height: screenHeight * 0.05),
+            SizedBox(height: screenHeight * 0.02),
+            _buildPriceRow('경매 시작가', widget.product.price),
+            SizedBox(height: screenHeight * 0.01),
+            // currentPrice가 null일 경우 표시되지 않게 처리
 
-            // 응찰하기 버튼
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  // 응찰 기능 처리
-                  if (bidController.text.isNotEmpty) {
-                    Navigator.pop(context);
-                  } else {
-                    // 금액을 입력하지 않았을 경우 처리
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('응찰 금액을 입력해주세요.')),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.3,
-                    vertical: screenHeight * 0.015,
-                  ),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  '응찰하기',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
+            _buildPriceRow(
+                '현재 최고가',
+                currentPrice != null
+                    ? currentPrice!.toInt()
+                    : widget.product.price,
+                isHighlighted: true),
           ],
         ),
       ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.1,
+          vertical: screenHeight * 0.02,
+        ),
+        child: ElevatedButton(
+          onPressed: _handleBid,
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(
+              vertical: screenHeight * 0.015,
+            ),
+            backgroundColor: Theme.of(context).primaryColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: const Text(
+            '응찰하기',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      ),
     );
+  }
+
+  Widget _buildPriceRow(String label, int price, {bool isHighlighted = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            color: isHighlighted ? Colors.black : Colors.grey,
+          ),
+        ),
+        Text(
+          '$price원',
+          style: TextStyle(
+            fontSize: isHighlighted ? 18 : 16,
+            fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
+            color: isHighlighted ? Theme.of(context).primaryColor : Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleBid() async {
+    int bidAmount = int.tryParse(bidController.text) ?? 0; // double에서 int로 변경
+
+    if (bidController.text.isEmpty) {
+      _showSnackbar(context, '응찰 금액을 입력해주세요.');
+      return;
+    } else if (bidAmount <= widget.product.currentPrice) {
+      _showSnackbar(context, '응찰 금액이 현재 최고가보다 높아야 합니다.');
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+
+    if (userId == null) {
+      _showSnackbar(context, '로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      final transactionService = TransactionService();
+      await transactionService.placeBid(
+        userId,
+        widget.product.id,
+        bidAmount, // 이미 int 타입
+      );
+
+      widget.onBidSuccess(bidAmount); // int 값 전달
+      Navigator.pop(context);
+      _showSnackbar(context, '응찰하였습니다.');
+    } catch (e) {
+      _showSnackbar(context, '응찰 실패: $e');
+    }
+  }
+
+  void _showSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
